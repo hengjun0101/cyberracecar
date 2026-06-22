@@ -1,0 +1,2682 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ 極限雙人 3D 霓虹賽車 ⚡ - Dual Drift Arena</title>
+    <!-- Tailwind CSS 引入 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js 引入 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Orbitron', 'Noto Sans TC', sans-serif;
+            background-color: #020617;
+            overflow: hidden;
+            user-select: none;
+        }
+        .neon-shadow-blue {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+        }
+        .neon-shadow-red {
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+        }
+        .neon-text-yellow {
+            text-shadow: 0 0 8px rgba(234, 179, 8, 0.8), 0 0 15px rgba(234, 179, 8, 0.4);
+        }
+        .neon-text-red {
+            text-shadow: 0 0 8px rgba(239, 68, 68, 0.8), 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 8px rgba(34, 211, 238, 0.8), 0 0 15px rgba(34, 211, 238, 0.4);
+        }
+        @keyframes alert-pulse {
+            0%, 100% { background-color: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.8); }
+            50% { background-color: rgba(239, 68, 68, 0.5); border-color: rgba(239, 68, 68, 1); }
+        }
+        .alert-active {
+            animation: alert-pulse 1s infinite;
+        }
+        @keyframes sandstorm-anim {
+            0% { opacity: 0; }
+            100% { opacity: 0.65; }
+        }
+        .sandstorm-screen {
+            background: radial-gradient(circle, rgba(217,119,6,0.3) 0%, rgba(146,64,14,0.7) 100%);
+            animation: sandstorm-anim 1s forwards;
+        }
+        @keyframes freeze-anim {
+            0% { opacity: 0; }
+            100% { opacity: 0.85; }
+        }
+        .freeze-screen {
+            background: radial-gradient(circle, rgba(147,197,253,0.55) 0%, rgba(12,74,110,0.92) 100%);
+            animation: freeze-anim 0.4s forwards;
+            backdrop-filter: blur(6px);
+        }
+        /* 數值即時跳動彈跳動畫 */
+        @keyframes hud-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); color: #facc15; }
+            100% { transform: scale(1); }
+        }
+        .animate-hud-pop {
+            animation: hud-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="text-white w-screen h-screen flex flex-col justify-between">
+
+    <!-- 音效控制 (利用 Web Audio API 合成) -->
+    <div class="absolute top-4 left-4 z-50 bg-slate-950/80 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-700 flex items-center gap-2">
+        <button id="toggle-sound-btn" class="text-xs font-bold text-cyan-400 hover:text-cyan-300 transition flex items-center gap-1.5">
+            <span id="sound-icon">🔊</span> <span id="sound-status-text">音樂音效：開</span>
+        </button>
+    </div>
+
+    <!-- ================== 畫面1：主選單 ================== -->
+    <div id="menu-screen" class="absolute inset-0 z-40 flex flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-zinc-900 to-slate-950 px-4">
+        <!-- 科技感背光效果 -->
+        <div class="absolute w-[600px] h-[600px] bg-cyan-500/10 blur-[130px] rounded-full top-1/4 left-1/4 animate-pulse"></div>
+        <div class="absolute w-[600px] h-[600px] bg-rose-500/10 blur-[130px] rounded-full bottom-1/4 right-1/4 animate-pulse" style="animation-delay: 1.5s;"></div>
+
+        <div class="text-center z-10 max-w-2xl w-full">
+            <div class="inline-block border border-cyan-500/30 bg-cyan-950/20 px-3 py-1 rounded-full text-xs font-black tracking-widest text-cyan-400 mb-4 uppercase">
+                🏁 PRO COMPETITIVE EDITION 🏁
+            </div>
+            <h1 class="text-6xl md:text-8xl font-black tracking-tighter italic mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-rose-500 drop-shadow-[0_8px_8px_rgba(0,0,0,0.8)]">
+                DUAL DRIFT 3D
+            </h1>
+            <p class="text-zinc-400 text-sm md:text-md font-bold tracking-widest mb-10 uppercase font-sans">
+                三大極限賽區：城市紅綠燈 🚦 ｜ 沙漠沙塵暴 🌪️ ｜ 冰川天降冰磚 ❄️
+            </p>
+
+            <!-- 玩家金幣錢包資訊 -->
+            <div class="bg-slate-900/90 border border-slate-700/80 p-6 rounded-2xl mb-8 flex justify-around items-center backdrop-blur-md shadow-2xl">
+                <div class="text-left">
+                    <p class="text-xs text-zinc-400 uppercase tracking-wider font-bold">個人金幣錢包</p>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-3xl">🪙</span>
+                        <span id="wallet-coins" class="text-3xl font-black font-mono text-yellow-400 tracking-wider">1000</span>
+                    </div>
+                </div>
+                <button id="claim-coins-btn" class="bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 font-black px-5 py-3 rounded-xl text-xs tracking-wider uppercase shadow-lg shadow-yellow-500/20 active:scale-95 transition-all">
+                    🎁 領取賽事救濟金 (+500)
+                </button>
+            </div>
+
+            <!-- 模式選擇 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 模式 1：單機雙人 -->
+                <button id="mode-local-btn" class="group relative bg-gradient-to-b from-cyan-950/40 to-slate-900/90 border-2 border-cyan-500/40 hover:border-cyan-400 p-6 rounded-2xl flex flex-col items-center transition-all duration-300 hover:shadow-[0_0_35px_rgba(34,211,238,0.25)] active:scale-98">
+                    <span class="absolute top-3 right-3 bg-cyan-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded-md">1-PC FIGHT</span>
+                    <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">🖥️</div>
+                    <h3 class="text-xl font-bold text-cyan-300 mb-1">本機同屏對決</h3>
+                    <p class="text-xs text-cyan-200/60 mb-4">單台電腦分割畫面競速</p>
+                    <div class="text-xs bg-slate-950/90 text-zinc-300 p-3 rounded-lg border border-slate-800 w-full text-left flex flex-col gap-1">
+                        <p class="text-cyan-400 font-bold mb-1">🎮 選手操控指令：</p>
+                        <p>🔵 玩家一 (左側)：A/D(轉彎) / W(加速) / S(煞車)</p>
+                        <p>🔴 玩家二 (右側)：←/→(轉彎) / ↑(加速) / ↓(煞車)</p>
+                    </div>
+                    <div class="mt-4 text-xs font-black text-yellow-400">💰 報名費：每人 100 金幣</div>
+                </button>
+
+                <!-- 模式 2：線上連線 -->
+                <button id="mode-online-btn" class="group relative bg-gradient-to-b from-rose-950/40 to-slate-900/90 border-2 border-rose-500/40 hover:border-rose-400 p-6 rounded-2xl flex flex-col items-center transition-all duration-300 hover:shadow-[0_0_35px_rgba(244,63,94,0.25)] active:scale-98">
+                    <span class="absolute top-3 right-3 bg-rose-500 text-white text-xs font-black px-2 py-0.5 rounded-md">MULTIPLAYER</span>
+                    <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">🌐</div>
+                    <h3 class="text-xl font-bold text-rose-300 mb-1">遠端雲端聯賽</h3>
+                    <p class="text-xs text-rose-200/60 mb-4">跨越終端即時同步開賽</p>
+                    <div class="text-xs bg-slate-950/90 text-zinc-300 p-4 rounded-lg border border-slate-800 w-full flex flex-col justify-center gap-1.5">
+                        <p class="text-rose-400 font-bold">📡 連線指引：</p>
+                        <p>雙方玩家均可使用方向鍵或 WASD 鍵操控各自的賽車進行極限對決！</p>
+                    </div>
+                    <div class="mt-4 text-xs font-black text-yellow-400">💰 報名費：每人 100 金幣</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================== 畫面2：線上房間控制台 ================== -->
+    <div id="online-lobby" class="hidden absolute inset-0 z-40 flex flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-zinc-900 to-rose-950 px-4">
+        <div class="bg-slate-900/95 border-2 border-rose-500/30 p-8 rounded-3xl max-w-md w-full shadow-2xl backdrop-blur-md">
+            <h2 class="text-2xl font-black text-center text-rose-400 mb-6 tracking-wide uppercase">📡 賽事聯賽大廳</h2>
+            
+            <div class="flex flex-col gap-6">
+                <!-- 創建房間 -->
+                <div class="bg-slate-950/60 p-5 rounded-2xl border border-slate-800">
+                    <h3 class="font-bold text-zinc-200 mb-3">開立新賽局 (Host)</h3>
+                    <button id="create-room-btn" class="w-full bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg active:scale-95 text-sm uppercase tracking-wider">
+                        建立競速房間
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between text-zinc-600 px-4">
+                    <span class="h-px bg-zinc-800 flex-1"></span>
+                    <span class="text-[10px] px-3 uppercase font-black tracking-widest">OR</span>
+                    <span class="h-px bg-zinc-800 flex-1"></span>
+                </div>
+
+                <!-- 加入房間 -->
+                <div class="bg-slate-950/60 p-5 rounded-2xl border border-slate-800">
+                    <h3 class="font-bold text-zinc-200 mb-3">加入既有局 (Join)</h3>
+                    <div class="flex gap-2">
+                        <input id="room-code-input" type="text" placeholder="輸入 6 位賽事代碼" class="flex-1 bg-slate-900 border border-slate-700 text-center font-mono text-xl tracking-widest uppercase rounded-xl focus:outline-none focus:border-rose-500 px-3 text-rose-400" maxlength="6">
+                        <button id="join-room-btn" class="bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black px-6 py-3 rounded-xl transition active:scale-95 text-sm">
+                            加入
+                        </button>
+                    </div>
+                </div>
+
+                <button id="back-to-menu-btn" class="text-zinc-400 hover:text-white transition text-xs font-bold text-center mt-2 uppercase tracking-widest">
+                    ⬅ 返回主選單
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================== 畫面3：等待對手畫面 ================== -->
+    <div id="waiting-screen" class="hidden absolute inset-0 z-40 flex flex-col items-center justify-center bg-slate-950/95 px-4">
+        <div class="text-center max-w-md w-full">
+            <div class="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-rose-500 mb-6"></div>
+            <h2 class="text-3xl font-extrabold text-rose-400 mb-2">已成功建立聯賽！</h2>
+            <p class="text-zinc-400 mb-6 text-sm">請將下方賽事代碼提供給您的對手，等候他加入後將自動開賽。</p>
+            
+            <div class="bg-slate-900 border-2 border-slate-800 p-6 rounded-2xl mb-8 shadow-inner">
+                <span class="text-xs text-zinc-500 uppercase tracking-widest block mb-2 font-bold">賽 事 代 碼</span>
+                <span id="display-room-code" class="text-5xl font-black font-mono tracking-wider text-yellow-400">------</span>
+            </div>
+
+            <button id="cancel-room-btn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold px-6 py-3 rounded-xl transition text-xs uppercase tracking-widest">
+                取消並退回
+            </button>
+        </div>
+    </div>
+
+    <!-- ================== 畫面4：倒數開賽 ================== -->
+    <div id="countdown-overlay" class="hidden fixed inset-0 z-30 flex items-center justify-center bg-black/90 backdrop-blur-sm pointer-events-none">
+        <div class="text-center">
+            <span id="countdown-number" class="text-[140px] md:text-[200px] font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-cyan-400 to-indigo-600 scale-95 transition-all duration-300 animate-bounce">3</span>
+            <p class="text-cyan-400 text-lg tracking-widest font-black uppercase mt-4">READY... REV YOUR ENGINES!</p>
+        </div>
+    </div>
+
+    <!-- ================== 畫面5：遊戲主戰場 (分割畫面) ================== -->
+    <div id="game-screen" class="hidden flex-1 flex flex-col md:flex-row relative h-full w-full">
+        <!-- 玩家一畫面 (左半邊) -->
+        <div id="p1-container" class="relative flex-1 h-1/2 md:h-full border-b-4 md:border-b-0 md:border-r-4 border-cyan-500/50 overflow-hidden">
+            <!-- P1 螢幕特殊效果覆蓋 -->
+            <div id="p1-sandstorm-overlay" class="hidden absolute inset-0 z-10 pointer-events-none transition-all duration-500"></div>
+            <div id="p1-freeze-overlay" class="hidden absolute inset-0 z-10 pointer-events-none transition-all duration-300"></div>
+
+            <!-- 3D 渲染區域 -->
+            <div id="p1-canvas-holder" class="w-full h-full"></div>
+            
+            <!-- P1 完賽等待提示 -->
+            <div id="p1-finish-overlay" class="hidden absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center z-20 pointer-events-none">
+                <div class="bg-cyan-950/90 border-2 border-cyan-400 p-8 rounded-2xl text-center backdrop-blur-md shadow-2xl">
+                    <p class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400 tracking-wider mb-2">🏁 FINISHED!</p>
+                    <p class="text-xs text-zinc-300 uppercase tracking-widest">已安全抵達終點，正在等待對手完賽...</p>
+                </div>
+            </div>
+
+            <!-- 玩家一 HUD 儀表板 -->
+            <div class="absolute inset-x-0 top-0 p-4 flex justify-between items-start pointer-events-none z-10">
+                <!-- 左上：分數、金幣、圈數、當前主題 -->
+                <div class="bg-slate-950/80 backdrop-blur-md p-4 rounded-xl border border-cyan-500/30 flex flex-col gap-1 shadow-2xl">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 bg-cyan-400 rounded-full inline-block animate-pulse"></span>
+                        <span class="font-black text-cyan-400 text-sm tracking-wider uppercase">PLAYER 1 (左)</span>
+                    </div>
+                    <!-- 當前賽區 -->
+                    <div class="text-[10px] uppercase font-black text-zinc-400 mt-1">目前賽區：<span id="p1-track-theme-name" class="text-cyan-300 font-black">城市賽道</span></div>
+                    <div class="text-xs font-bold mt-1">🪙 本局金幣: <span id="hud-p1-coins" class="text-yellow-400 font-mono text-sm tracking-wider">0</span></div>
+                    <div class="text-xs font-bold">✨ 目前積分: <span id="hud-p1-score" class="text-cyan-300 font-mono text-sm tracking-wider">0</span></div>
+                    <div class="text-xs font-bold">🏁 當前圈數: <span id="hud-p1-lap" class="text-green-400 font-mono text-sm">1 / 3</span></div>
+                </div>
+
+                <!-- 右上：時速、道具、狀態警告 -->
+                <div class="flex flex-col items-end gap-2 pointer-events-none">
+                    <div class="bg-slate-950/80 backdrop-blur-md px-4 py-2 rounded-xl border border-cyan-500/30 text-right shadow-2xl">
+                        <div class="text-[9px] text-zinc-400 font-black uppercase">SPEED</div>
+                        <div class="text-xl font-black font-mono text-cyan-400"><span id="hud-p1-speed">0</span> <span class="text-[10px] text-zinc-400">KM/H</span></div>
+                    </div>
+                    <!-- 道具提示 -->
+                    <div id="hud-p1-powerup-box" class="hidden bg-gradient-to-r from-emerald-600/90 to-cyan-600/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-emerald-400/50 text-[10px] font-black shadow-lg">
+                        ⚡ 道具啟用: <span id="hud-p1-powerup">無</span> (<span id="hud-p1-powerup-time">0</span>s)
+                    </div>
+                    <!-- 警告提示 -->
+                    <div id="hud-p1-alert-box" class="hidden bg-rose-950/95 border border-rose-500 text-rose-400 font-black px-4 py-2 rounded-xl text-xs uppercase tracking-widest alert-active">
+                        ⚠️ 警告中
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 玩家二畫面 (右半邊) -->
+        <div id="p2-container" class="relative flex-1 h-1/2 md:h-full border-t-4 md:border-t-0 md:border-l-4 border-rose-500/50 overflow-hidden">
+            <!-- P2 螢幕特殊效果覆蓋 -->
+            <div id="p2-sandstorm-overlay" class="hidden absolute inset-0 z-10 pointer-events-none transition-all duration-500"></div>
+            <div id="p2-freeze-overlay" class="hidden absolute inset-0 z-10 pointer-events-none transition-all duration-300"></div>
+
+            <!-- 3D 渲染區域 -->
+            <div id="p2-canvas-holder" class="w-full h-full"></div>
+
+            <!-- P2 完賽等待提示 -->
+            <div id="p2-finish-overlay" class="hidden absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center z-20 pointer-events-none">
+                <div class="bg-rose-950/90 border-2 border-rose-400 p-8 rounded-2xl text-center backdrop-blur-md shadow-2xl">
+                    <p class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-amber-400 tracking-wider mb-2">🏁 FINISHED!</p>
+                    <p class="text-xs text-zinc-300 uppercase tracking-widest">已安全抵達終點，正在等待對手完賽...</p>
+                </div>
+            </div>
+
+            <!-- 玩家二 HUD 儀表板 -->
+            <div class="absolute inset-x-0 top-0 p-4 flex justify-between items-start pointer-events-none z-10">
+                <!-- 左上：分數、金幣、圈數、當前主題 -->
+                <div class="bg-slate-950/80 backdrop-blur-md p-4 rounded-xl border border-rose-500/30 flex flex-col gap-1 shadow-2xl">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 bg-rose-400 rounded-full inline-block animate-pulse"></span>
+                        <span class="font-black text-rose-400 text-sm tracking-wider uppercase">PLAYER 2 (右)</span>
+                    </div>
+                    <!-- 當前賽區 -->
+                    <div class="text-[10px] uppercase font-black text-zinc-400 mt-1">目前賽區：<span id="p2-track-theme-name" class="text-rose-300 font-black">城市賽道</span></div>
+                    <div class="text-xs font-bold mt-1">🪙 本局金幣: <span id="hud-p2-coins" class="text-yellow-400 font-mono text-sm tracking-wider">0</span></div>
+                    <div class="text-xs font-bold">✨ 目前積分: <span id="hud-p2-score" class="text-rose-300 font-mono text-sm tracking-wider">0</span></div>
+                    <div class="text-xs font-bold">🏁 當前圈數: <span id="hud-p2-lap" class="text-green-400 font-mono text-sm">1 / 3</span></div>
+                </div>
+
+                <!-- 右上：時速、道具、狀態警告 -->
+                <div class="flex flex-col items-end gap-2 pointer-events-none">
+                    <div class="bg-slate-950/80 backdrop-blur-md px-4 py-2 rounded-xl border border-rose-500/30 text-right shadow-2xl">
+                        <div class="text-[9px] text-zinc-400 font-black uppercase">SPEED</div>
+                        <div class="text-xl font-black font-mono text-rose-400"><span id="hud-p2-speed">0</span> <span class="text-[10px] text-zinc-400">KM/H</span></div>
+                    </div>
+                    <!-- 道具提示 -->
+                    <div id="hud-p2-powerup-box" class="hidden bg-gradient-to-r from-emerald-600/90 to-rose-600/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-emerald-400/50 text-[10px] font-black shadow-lg">
+                        ⚡ 道具啟用: <span id="hud-p2-powerup">無</span> (<span id="hud-p2-powerup-time">0</span>s)
+                    </div>
+                    <!-- 警告提示 -->
+                    <div id="hud-p2-alert-box" class="hidden bg-rose-950/95 border border-rose-500 text-rose-400 font-black px-4 py-2 rounded-xl text-xs uppercase tracking-widest alert-active">
+                        ⚠️ 警告中
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 全局計時器與賽事狀態疊加 -->
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 bg-slate-950/95 backdrop-blur-lg border-2 border-slate-700 px-6 py-2.5 rounded-2xl shadow-2xl flex flex-col items-center gap-1">
+            <div class="flex items-center gap-2">
+                <span class="text-yellow-400 animate-pulse text-sm font-bold">⏱️ TOTAL TIME</span>
+                <span id="global-timer" class="text-2xl font-black font-mono tracking-wider text-yellow-400">00:00</span>
+            </div>
+            <!-- 全局紅綠燈提示（適用於城市第一關） -->
+            <div id="global-traffic-light-bar" class="text-[10px] font-black uppercase text-zinc-400 flex items-center gap-1">
+                賽道交通號誌：<span id="traffic-light-status" class="text-green-400">● 綠燈 (通行)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================== 畫面6：成績結算面板 ================== -->
+    <div id="results-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/95 px-4 overflow-hidden">
+        <canvas id="confetti-canvas" class="absolute inset-0 pointer-events-none z-10 w-full h-full"></canvas>
+
+        <div class="bg-slate-900 border-2 border-slate-700 p-8 rounded-3xl max-w-3xl w-full shadow-[0_0_50px_rgba(0,0,0,0.8)] backdrop-blur-md text-center max-h-[90vh] overflow-y-auto z-20 relative">
+            <h2 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-yellow-400 to-rose-500 italic mb-1 tracking-wider">
+                🏆 CHAMPIONSHIP RESULTS 🏆
+            </h2>
+            <p class="text-zinc-400 text-xs tracking-widest uppercase mb-6">賽事終點成績統計</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- 玩家 1 結果 -->
+                <div id="result-box-p1" class="bg-slate-950/80 p-5 rounded-2xl border-2 border-cyan-500/40 relative overflow-hidden text-center">
+                    <div id="p1-winner-badge" class="hidden absolute -top-3 -right-3 bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-950 font-black px-3 py-1 rounded-lg text-xs uppercase tracking-wider rotate-6 shadow-md z-30">CHAMPION 🏆</div>
+                    <h3 class="text-xl font-bold text-cyan-400 mb-3 flex items-center justify-center gap-1.5">🔵 玩家一 (P1)</h3>
+                    
+                    <div id="p1-coin-reward-display" class="text-lg font-black mb-3 py-1 bg-black/40 rounded-xl text-center"></div>
+
+                    <div class="flex flex-col gap-2 text-left text-xs text-zinc-300">
+                        <div class="flex justify-between border-b border-zinc-800 pb-1"><span>🪙 收集金幣:</span><span id="res-p1-coins" class="font-mono text-yellow-400">0</span></div>
+                        <div class="flex justify-between border-b border-zinc-800 pb-1"><span>💥 碰撞失誤:</span><span id="res-p1-crashes" class="font-mono text-rose-400">0</span></div>
+                        <div class="flex justify-between border-b border-zinc-800 pb-1"><span>⏱️ 完賽時間:</span><span id="res-p1-time" class="font-mono">00:00</span></div>
+                        <div class="flex justify-between border-b border-zinc-800 pb-1"><span>⚡ 時間加分:</span><span id="res-p1-time-bonus" class="font-mono text-green-400">0</span></div>
+                        <div class="flex justify-between pt-2 text-sm font-black"><span>🏆 最終總分:</span><span id="res-p1-total" class="font-mono text-cyan-300 text-base">0</span></div>
+                    </div>
+                </div>
+
+                <!-- 玩家 2 結果 -->
+                <div id="result-box-p2" class="bg-slate-950/80 p-5 rounded-2xl border-2 border-rose-500/40 relative overflow-hidden text-center">
+                    <div id="p2-winner-badge" class="hidden absolute -top-3 -right-3 bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-950 font-black px-3 py-1 rounded-lg text-xs uppercase tracking-wider rotate-6 shadow-md z-30">CHAMPION 🏆</div>
+                    <h3 class="text-xl font-bold text-rose-400 mb-3 flex items-center justify-center gap-1.5">🔴 玩家二 (P2)</h3>
+                    
+                    <div id="p2-coin-reward-display" class="text-lg font-black mb-3 py-1 bg-black/40 rounded-xl text-center"></div>
+
+                    <div class="flex flex-col gap-2 text-left text-xs text-zinc-300">
+                        <div class="flex justify-between border-b border-zinc-800 pb-1"><span>🪙 收集金幣:</span><span id="res-p2-coins" class="font-mono text-yellow-400">0</span></div>
+                        <div class="flex justify-between border-b border-zinc-800 pb-1"><span>💥 碰撞失誤:</span><span id="res-p2-crashes" class="font-mono text-rose-400">0</span></div>
+                        <div class="flex justify-between border-b border-zinc-800 pb-1"><span>⏱️ 完賽時間:</span><span id="res-p2-time" class="font-mono">00:00</span></div>
+                        <div class="flex justify-between border-b border-zinc-800 pb-1"><span>⚡ 時間加分:</span><span id="res-p2-time-bonus" class="font-mono text-green-400">0</span></div>
+                        <div class="flex justify-between pt-2 text-sm font-black"><span>🏆 最終總分:</span><span id="res-p2-total" class="font-mono text-rose-300 text-base">0</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 金幣獎勵結算 -->
+            <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl mb-8 flex flex-col md:flex-row items-center justify-around gap-4">
+                <div class="text-center md:text-left">
+                    <span class="text-xs text-zinc-400 block uppercase font-bold">REWARD SYSTEM</span>
+                    <span id="match-bet-desc" class="text-sm font-bold text-zinc-200">勝者強勢掠奪對手 100 金幣！</span>
+                </div>
+                <div class="text-xl font-black text-yellow-400 bg-yellow-500/10 px-4 py-2 rounded-xl border border-yellow-500/30">
+                    💰 對決總獎池：200 金幣
+                </div>
+            </div>
+
+            <button id="results-done-btn" class="bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-600 hover:to-indigo-700 text-slate-950 font-black px-12 py-4 rounded-2xl text-md uppercase tracking-wider shadow-xl shadow-indigo-500/20 active:scale-95 transition-all">
+                確認結算並重回賽事大廳
+            </button>
+        </div>
+    </div>
+
+    <!-- ================== 訊息提示視窗 ================== -->
+    <div id="toast-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-sm w-full shadow-2xl text-center">
+            <div id="toast-icon" class="text-4xl mb-3">⚠️</div>
+            <p id="toast-text" class="text-zinc-200 text-md font-bold mb-6">發生未知錯誤</p>
+            <button id="toast-ok-btn" class="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black py-2.5 rounded-xl transition active:scale-95 text-xs uppercase tracking-widest">
+                確定
+            </button>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- ======================== 核心邏輯 JavaScript ===================== -->
+    <!-- ================================================================= -->
+    <script type="module">
+        // ----------------- Firebase 初始化與設定 -----------------
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = 'cyberracecar-5035a'; 
+
+        const firebaseConfigStr = JSON.stringify({
+          apiKey: "AIzaSyCvYYxDRpid587fE_eu2Nn3aLinSNcgT5Y",
+          authDomain: "cyberracecar-5035a.firebaseapp.com",
+          projectId: "cyberracecar-5035a",
+          storageBucket: "cyberracecar-5035a.firebasestorage.app",
+          messagingSenderId: "349789471501",
+          appId: "1:349789471501:web:a8c5cee5e0191818a26644",
+          measurementId: "G-DM97T6165E"
+        });
+
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        let onlineActive = false;
+
+        // 初始化 Firebase
+        if (firebaseConfigStr) {
+            try {
+                const firebaseConfig = JSON.parse(firebaseConfigStr);
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                onlineActive = true;
+                console.log("Firebase 載入成功，線上聯賽模式啟用！");
+            } catch (e) {
+                console.error("Firebase 初始化失敗:", e);
+            }
+        }
+
+        // ----------------- 音效合成模組 (Web Audio API) -----------------
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(freq, duration, type = "sine", volume = 0.1) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playCoinSound() {
+            playSound(1200, 0.08, "sine", 0.03);
+            setTimeout(() => playSound(1500, 0.12, "sine", 0.03), 40);
+        }
+
+        function playCrashSound() {
+            playSound(100, 0.35, "sawtooth", 0.18);
+        }
+
+        function playSlideSound() {
+            playSound(180, 0.15, "triangle", 0.05);
+        }
+
+        function playFreezeSound() {
+            playSound(2000, 0.1, "sine", 0.1);
+            setTimeout(() => playSound(2500, 0.25, "sine", 0.05), 80);
+        }
+
+        function playPowerupSound() {
+            playSound(523.25, 0.08, "triangle", 0.08);
+            setTimeout(() => playSound(659.25, 0.08, "triangle", 0.08), 60);
+            setTimeout(() => playSound(783.99, 0.15, "triangle", 0.08), 120);
+        }
+
+        function playAlertSound() {
+            playSound(400, 0.12, "sawtooth", 0.07);
+            setTimeout(() => playSound(300, 0.12, "sawtooth", 0.07), 120);
+        }
+
+        // ----------------- 遊戲狀態變數 -----------------
+        let userCoins = 1000; 
+        let isOnlineMode = false;
+        let isHost = false;
+        let roomId = "";
+        let roomData = null;
+        let gameActive = false;
+        let gameStartTime = 0;
+        let elapsedGameTime = 0;
+        let timerInterval = null;
+
+        // 精準時間 Clock
+        let clock = new THREE.Clock();
+
+        // 全局交通號誌（紅綠燈）：1 = 綠燈，0 = 紅燈
+        let trafficLightState = 1;
+        let trafficLightTimer = 0;
+
+        // HUD 記錄前次分數，用以比對跳動
+        let displayedP1Coins = 0;
+        let displayedP1Score = 0;
+        let displayedP2Coins = 0;
+        let displayedP2Score = 0;
+
+        // 賽道與防護欄配置
+        const TRACK_RADIUS = 60;
+        const TRACK_WIDTH = 12;
+        const LAP_TOTAL = 3;
+
+        // 防護欄安全邊界半徑
+        const BARRIER_INNER = (TRACK_RADIUS - TRACK_WIDTH / 2) + 0.9;
+        const BARRIER_OUTER = (TRACK_RADIUS + TRACK_WIDTH / 2) - 0.9;
+
+        // 玩家 1 狀態
+        let p1Coins = 0;
+        let p1Score = 0;
+        let p1Lap = 1;
+        let p1Finished = false;
+        let p1FinishTime = 0;
+        let p1Crashes = 0;
+        let p1NextCheckpoint = 1;
+        let p1Powerup = ""; 
+        let p1PowerupTime = 0;
+
+        // 玩家一特殊狀態與 Debuff
+        let p1RedLightFreezeTime = 0; 
+        let p1SandstormActive = false; 
+        let p1SandstormTime = 0;       
+        let p1FrozenTime = 0;          
+
+        // 玩家 2 狀態
+        let p2Coins = 0;
+        let p2Score = 0;
+        let p2Lap = 1;
+        let p2Finished = false;
+        let p2FinishTime = 0;
+        let p2Crashes = 0;
+        let p2NextCheckpoint = 1;
+        let p2Powerup = "";
+        let p2PowerupTime = 0;
+
+        // 玩家二特殊狀態與 Debuff
+        let p2RedLightFreezeTime = 0;
+        let p2SandstormActive = false;
+        let p2SandstormTime = 0;
+        let p2FrozenTime = 0;
+
+        // 操控輸入
+        const keys = {};
+
+        // Three.js 場景對象
+        let scene, camera1, camera2, renderer1, renderer2;
+        let car1, car2;
+        let headlight1, headlight2;
+        let ambientLight, dirLight;
+
+        // 地板與柏油賽道材質 (用於動態換裝)
+        let groundMat, roadMat;
+
+        // 三大關卡場景周圍物件 Group
+        let cityEnvGroup;
+        let desertEnvGroup;
+        let glacierEnvGroup;
+
+        // 3D 交通號誌物體
+        let trafficLightMesh;
+        let redLightBulb, greenLightBulb;
+
+        // 遊戲元素陣列
+        const coinsArray = [];
+        const obstaclesArray = []; 
+        const powerupsArray = [];
+        const iceBricksArray = []; // 天降冰磚陣列
+
+        // 彩帶動畫用變數
+        let confettiParticles = [];
+        let confettiAnimationId = null;
+        let winnerIndex = 0;
+
+        // ----------------- 1. Firebase 授權登入與初始化 -----------------
+        async function authenticateAndLoad() {
+            if (!onlineActive) return;
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Firebase 登入失敗:", err);
+            }
+        }
+
+        if (auth) {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    await loadUserProfile();
+                }
+            });
+        }
+
+        async function loadUserProfile() {
+            if (!db || !currentUser) return;
+            const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'state');
+            try {
+                const snap = await getDoc(profileRef);
+                if (snap.exists()) {
+                    userCoins = snap.data().coins ?? 1000;
+                } else {
+                    await setDoc(profileRef, { coins: 1000 });
+                    userCoins = 1000;
+                }
+                updateCoinsUI();
+            } catch (e) {
+                console.error("載入錢包失敗:", e);
+            }
+        }
+
+        async function saveUserProfile() {
+            updateCoinsUI();
+            if (!db || !currentUser) return;
+            const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'state');
+            try {
+                await setDoc(profileRef, { coins: userCoins });
+            } catch (e) {
+                console.error("更新錢包失敗:", e);
+            }
+        }
+
+        function updateCoinsUI() {
+            document.getElementById('wallet-coins').innerText = userCoins;
+        }
+
+        // ----------------- 2. DOM 控制與自訂 Alert -----------------
+        function showToast(text, icon = "⚠️") {
+            document.getElementById('toast-icon').innerText = icon;
+            document.getElementById('toast-text').innerText = text;
+            document.getElementById('toast-modal').classList.remove('hidden');
+        }
+
+        document.getElementById('toast-ok-btn').addEventListener('click', () => {
+            document.getElementById('toast-modal').classList.add('hidden');
+        });
+
+        // 領取救濟金
+        document.getElementById('claim-coins-btn').addEventListener('click', async () => {
+            userCoins += 500;
+            playSound(1046.50, 0.2, "triangle", 0.05);
+            await saveUserProfile();
+            showToast("成功領取 500 金幣救濟金！", "🎁");
+        });
+
+        // 音訊切換
+        document.getElementById('toggle-sound-btn').addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-status-text').innerText = soundEnabled ? "音樂音效：開" : "音樂音效：關";
+            document.getElementById('sound-icon').innerText = soundEnabled ? "🔊" : "🔇";
+        });
+
+        // 返回選單
+        document.getElementById('back-to-menu-btn').addEventListener('click', () => {
+            document.getElementById('online-lobby').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+        });
+
+        // ----------------- 3. 線上對戰連線邏輯 -----------------
+        let roomUnsubscribe = null;
+
+        // 建立房間
+        document.getElementById('create-room-btn').addEventListener('click', async () => {
+            if (userCoins < 100) {
+                showToast("您的金幣不足 100，無法支付報名費！", "❌");
+                return;
+            }
+
+            userCoins -= 100;
+            await saveUserProfile();
+
+            const randomCode = Math.floor(100000 + Math.random() * 900000).toString();
+            roomId = randomCode;
+            isHost = true;
+            isOnlineMode = true;
+
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId);
+            const initialRoomData = {
+                roomId: roomId,
+                hostId: currentUser.uid,
+                guestId: "",
+                status: "waiting",
+                p1_pos: { x: 60, z: 10, rot: 0 },
+                p2_pos: { x: 60, z: -10, rot: 0 },
+                p1_coins: 0, p1_score: 0, p1_lap: 1, p1_powerup: "", p1_finished: false, p1_crashes: 0, p1_time: 0,
+                p2_coins: 0, p2_score: 0, p2_lap: 1, p2_powerup: "", p2_finished: false, p2_crashes: 0, p2_time: 0,
+                createdAt: Date.now()
+            };
+
+            try {
+                await setDoc(roomRef, initialRoomData);
+                document.getElementById('display-room-code').innerText = roomId;
+                document.getElementById('online-lobby').classList.add('hidden');
+                document.getElementById('waiting-screen').classList.remove('hidden');
+                
+                listenToRoom(roomId);
+            } catch (err) {
+                console.error("創建房間失敗:", err);
+                showToast("連線伺服器失敗，請稍後再試！");
+            }
+        });
+
+        // 取消房間
+        document.getElementById('cancel-room-btn').addEventListener('click', async () => {
+            userCoins += 100;
+            await saveUserProfile();
+
+            if (roomUnsubscribe) roomUnsubscribe();
+            if (db && roomId) {
+                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId);
+                await deleteDoc(roomRef).catch(console.error);
+            }
+            document.getElementById('waiting-screen').classList.add('hidden');
+            document.getElementById('online-lobby').classList.remove('hidden');
+        });
+
+        // 加入房間
+        document.getElementById('join-room-btn').addEventListener('click', async () => {
+            const inputCode = document.getElementById('room-code-input').value.trim().toUpperCase();
+            if (inputCode.length !== 6) {
+                showToast("請輸入完整的 6 位數房間代碼！");
+                return;
+            }
+            if (userCoins < 100) {
+                showToast("您的金幣不足 100，無法支付參賽費！", "❌");
+                return;
+            }
+
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', inputCode);
+            try {
+                const snap = await getDoc(roomRef);
+                if (!snap.exists()) {
+                    showToast("找不到該房間，請重新確認代碼！");
+                    return;
+                }
+                const data = snap.data();
+                if (data.status !== 'waiting') {
+                    showToast("該房間賽局已在進行或已結束！");
+                    return;
+                }
+
+                userCoins -= 100;
+                await saveUserProfile();
+
+                roomId = inputCode;
+                isHost = false;
+                isOnlineMode = true;
+
+                await updateDoc(roomRef, {
+                    guestId: currentUser.uid,
+                    status: "playing"
+                });
+
+                document.getElementById('online-lobby').classList.add('hidden');
+                listenToRoom(roomId);
+            } catch (err) {
+                console.error("加入房間失敗:", err);
+                showToast("連線伺服器失敗，請稍後再試！");
+            }
+        });
+
+        // 監聽房間資料
+        function listenToRoom(code) {
+            if (!db) return;
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', code);
+            roomUnsubscribe = onSnapshot(roomRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    roomData = data;
+                    
+                    if (data.status === "playing" && !gameActive) {
+                        document.getElementById('waiting-screen').classList.add('hidden');
+                        document.getElementById('online-lobby').classList.add('hidden');
+                        document.getElementById('menu-screen').classList.add('hidden');
+                        startCountdown();
+                    }
+
+                    if (gameActive) {
+                        if (isHost) {
+                            if (car2 && data.p2_pos) {
+                                car2.targetPosition = { x: data.p2_pos.x, z: data.p2_pos.z };
+                                car2.targetRotation = data.p2_pos.rot;
+                            }
+                            p2Coins = data.p2_coins;
+                            p2Score = data.p2_score;
+                            p2Lap = data.p2_lap;
+                            p2Powerup = data.p2_powerup;
+                            p2Finished = data.p2_finished;
+                            p2FinishTime = data.p2_time;
+                            p2Crashes = data.p2_crashes;
+                        } else {
+                            if (car1 && data.p1_pos) {
+                                car1.targetPosition = { x: data.p1_pos.x, z: data.p1_pos.z };
+                                car1.targetRotation = data.p1_pos.rot;
+                            }
+                            p1Coins = data.p1_coins;
+                            p1Score = data.p1_score;
+                            p1Lap = data.p1_lap;
+                            p1Powerup = data.p1_powerup;
+                            p1Finished = data.p1_finished;
+                            p1FinishTime = data.p1_time;
+                            p1Crashes = data.p1_crashes;
+                        }
+                        updateHudUI();
+                        toggleFinishOverlays();
+
+                        if (p1Finished && p2Finished) {
+                            endGame();
+                        }
+                    }
+                }
+            }, (error) => {
+                console.error("即時同步連線失敗:", error);
+            });
+        }
+
+        // 發送車輛位置
+        let lastSyncTime = 0;
+        function syncLocalCarToFirebase() {
+            if (!isOnlineMode || !db || !roomId || !gameActive) return;
+            const now = Date.now();
+            if (now - lastSyncTime < 250) return;
+            lastSyncTime = now;
+
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId);
+            const updateFields = {};
+
+            if (isHost) {
+                updateFields.p1_pos = { x: car1.position.x, z: car1.position.z, rot: car1.rotation.y };
+                updateFields.p1_coins = p1Coins;
+                updateFields.p1_score = p1Score;
+                updateFields.p1_lap = p1Lap;
+                updateFields.p1_powerup = p1Powerup;
+                updateFields.p1_finished = p1Finished;
+                updateFields.p1_crashes = p1Crashes;
+                updateFields.p1_time = p1FinishTime;
+            } else {
+                updateFields.p2_pos = { x: car2.position.x, z: car2.position.z, rot: car2.rotation.y };
+                updateFields.p2_coins = p2Coins;
+                updateFields.p2_score = p2Score;
+                updateFields.p2_lap = p2Lap;
+                updateFields.p2_powerup = p2Powerup;
+                updateFields.p2_finished = p2Finished;
+                updateFields.p2_crashes = p2Crashes;
+                updateFields.p2_time = p2FinishTime;
+            }
+
+            updateDoc(roomRef, updateFields).catch(console.error);
+        }
+
+        // ----------------- 4. 模式選擇與扣款 -----------------
+        document.getElementById('mode-local-btn').addEventListener('click', () => {
+            if (userCoins < 200) {
+                showToast("同屏模式需雙方共同繳交 200 金幣參賽費，請先領取救濟金！", "❌");
+                return;
+            }
+            userCoins -= 200;
+            saveUserProfile();
+
+            isOnlineMode = false;
+            document.getElementById('menu-screen').classList.add('hidden');
+            startCountdown();
+        });
+
+        document.getElementById('mode-online-btn').addEventListener('click', () => {
+            if (!onlineActive) {
+                showToast("很抱歉，此環境無可用的網際網路，請遊玩本機同屏模式！");
+                return;
+            }
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('online-lobby').classList.remove('hidden');
+        });
+
+        // ----------------- 5. 倒數階段 -----------------
+        function startCountdown() {
+            document.getElementById('countdown-overlay').classList.remove('hidden');
+            let count = 3;
+            document.getElementById('countdown-number').innerText = count;
+            
+            playSound(440, 0.15, "triangle", 0.1);
+
+            const timer = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    document.getElementById('countdown-number').innerText = count;
+                    playSound(440, 0.15, "triangle", 0.1);
+                } else if (count === 0) {
+                    document.getElementById('countdown-number').innerText = "GO!";
+                    playSound(880, 0.3, "sine", 0.1);
+                } else {
+                    clearInterval(timer);
+                    document.getElementById('countdown-overlay').classList.add('hidden');
+                    initGameEngine();
+                }
+            }, 1000);
+        }
+
+        // ----------------- 6. 3D 遊戲引擎 (Three.js) -----------------
+        let icyRoadSegmentMesh; // 冰川的結冰路面
+
+        function initGameEngine() {
+            // 初始化數據
+            p1Coins = 0; p1Score = 0; p1Lap = 1; p1Finished = false; p1FinishTime = 0; p1Crashes = 0; p1NextCheckpoint = 1; p1Powerup = ""; p1PowerupTime = 0;
+            p2Coins = 0; p2Score = 0; p2Lap = 1; p2Finished = false; p2FinishTime = 0; p2Crashes = 0; p2NextCheckpoint = 1; p2Powerup = ""; p2PowerupTime = 0;
+            p1RedLightFreezeTime = 0; p1SandstormActive = false; p1SandstormTime = 0; p1FrozenTime = 0;
+            p2RedLightFreezeTime = 0; p2SandstormActive = false; p2SandstormTime = 0; p2FrozenTime = 0;
+            displayedP1Coins = 0; displayedP1Score = 0; displayedP2Coins = 0; displayedP2Score = 0;
+            trafficLightState = 1; trafficLightTimer = 0;
+
+            document.getElementById('game-screen').classList.remove('hidden');
+            
+            document.getElementById('p1-canvas-holder').innerHTML = "";
+            document.getElementById('p2-canvas-holder').innerHTML = "";
+
+            document.getElementById('p1-finish-overlay').classList.add('hidden');
+            document.getElementById('p2-finish-overlay').classList.add('hidden');
+
+            const p1W = document.getElementById('p1-container').clientWidth;
+            const p1H = document.getElementById('p1-container').clientHeight;
+            const p2W = document.getElementById('p2-container').clientWidth;
+            const p2H = document.getElementById('p2-container').clientHeight;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x020617);
+            scene.fog = new THREE.FogExp2(0x020617, 0.015);
+
+            clock.getDelta();
+
+            // 玩家 1 相機
+            camera1 = new THREE.PerspectiveCamera(60, p1W / p1H, 0.1, 1000);
+            renderer1 = new THREE.WebGLRenderer({ antialias: true });
+            renderer1.setSize(p1W, p1H);
+            renderer1.shadowMap.enabled = true;
+            document.getElementById('p1-canvas-holder').appendChild(renderer1.domElement);
+
+            // 玩家 2 相機
+            camera2 = new THREE.PerspectiveCamera(60, p2W / p2H, 0.1, 1000);
+            renderer2 = new THREE.WebGLRenderer({ antialias: true });
+            renderer2.setSize(p2W, p2H);
+            renderer2.shadowMap.enabled = true;
+            document.getElementById('p2-canvas-holder').appendChild(renderer2.domElement);
+
+            // 光源
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+
+            dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            dirLight.position.set(30, 60, 20);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            buildTrack();
+            buildFences();
+            buildNeonGuides(); 
+
+            // 🚗 創立雙人賽車
+            car1 = createCarMesh(0x22d3ee); // 青色
+            car1.position.set(60, 0.3, 10);
+            car1.prevFrontZ = 10;
+            car1.lightHitCooldown = 0;
+            scene.add(car1);
+
+            car2 = createCarMesh(0xf43f5e); // 玫瑰紅
+            car2.position.set(60, 0.3, -10);
+            car2.prevFrontZ = -10;
+            car2.lightHitCooldown = 0;
+            scene.add(car2);
+
+            car1.speed = 0;
+            car2.speed = 0;
+            car1.targetPosition = null; car1.targetRotation = 0;
+            car2.targetPosition = null; car2.targetRotation = 0;
+
+            // 車頭燈
+            headlight1 = new THREE.SpotLight(0xffffff, 1.5, 30, Math.PI/5, 0.5, 1);
+            headlight1.position.set(0, 0.5, 2.0);
+            headlight1.target.position.set(0, 0, 10);
+            car1.add(headlight1);
+            car1.add(headlight1.target);
+
+            headlight2 = new THREE.SpotLight(0xffffff, 1.5, 30, Math.PI/5, 0.5, 1);
+            headlight2.position.set(0, 0.5, 2.0);
+            headlight2.target.position.set(0, 0, 10);
+            car2.add(headlight2);
+            car2.add(headlight2.target);
+
+            buildTrafficLight();
+            spawnStageEnvironments();
+            spawnCollectiblesAndObstacles();
+
+            gameActive = true;
+            gameStartTime = Date.now();
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (gameActive) {
+                    elapsedGameTime = Math.floor((Date.now() - gameStartTime) / 1000);
+                    const mins = String(Math.floor(elapsedGameTime / 60)).padStart(2, '0');
+                    const secs = String(elapsedGameTime % 60).padStart(2, '0');
+                    document.getElementById('global-timer').innerText = `${mins}:${secs}`;
+                }
+            }, 1000);
+
+            window.addEventListener('resize', onWindowResize);
+
+            animate();
+        }
+
+        // ----------------- 3D 結構建模 -----------------
+        function createCarMesh(colorHex) {
+            const carGroup = new THREE.Group();
+
+            // 底盤
+            const chassisGeo = new THREE.BoxGeometry(1.6, 0.3, 3.6);
+            const chassisMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.1, metalness: 0.8 });
+            const chassis = new THREE.Mesh(chassisGeo, chassisMat);
+            chassis.position.y = 0.2;
+            chassis.castShadow = true;
+            carGroup.add(chassis);
+
+            // 駕駛艙
+            const cabinGeo = new THREE.BoxGeometry(1.1, 0.5, 1.6);
+            const cabinMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.0, metalness: 0.9, transparent: true, opacity: 0.85 });
+            const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+            cabin.position.set(0, 0.55, -0.2);
+            carGroup.add(cabin);
+
+            // 霓虹進氣條
+            const sideGeo = new THREE.BoxGeometry(0.2, 0.2, 2.2);
+            const sideMat = new THREE.MeshBasicMaterial({ color: colorHex });
+            const sideL = new THREE.Mesh(sideGeo, sideMat);
+            sideL.position.set(-0.9, 0.2, 0.2);
+            const sideR = sideL.clone();
+            sideR.position.x = 0.9;
+            carGroup.add(sideL);
+            carGroup.add(sideR);
+
+            // 輪胎
+            const wheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.4, 16);
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.7 });
+            const wheelPos = [
+                [-0.85, 0.18, 1.1],
+                [0.85, 0.18, 1.1],
+                [-0.85, 0.18, -1.1],
+                [0.85, 0.18, -1.1]
+            ];
+            wheelPos.forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+                wheel.rotation.z = Math.PI / 2;
+                wheel.position.set(pos[0], pos[1], pos[2]);
+                wheel.castShadow = true;
+                carGroup.add(wheel);
+            });
+
+            // 尾翼
+            const wingGeo = new THREE.BoxGeometry(1.8, 0.08, 0.5);
+            const wing = new THREE.Mesh(wingGeo, chassisMat);
+            wing.position.set(0, 0.8, -1.5);
+            
+            const strutGeo = new THREE.BoxGeometry(0.1, 0.5, 0.1);
+            const strutL = new THREE.Mesh(strutGeo, chassisMat);
+            strutL.position.set(-0.6, 0.5, -1.5);
+            const strutR = strutL.clone();
+            strutR.position.x = 0.6;
+
+            carGroup.add(wing);
+            carGroup.add(strutL);
+            carGroup.add(strutR);
+
+            return carGroup;
+        }
+
+        function buildTrack() {
+            // 大地
+            const groundGeo = new THREE.PlaneGeometry(380, 350);
+            groundMat = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 1.0 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // 跑道
+            const roadGeo = new THREE.RingGeometry(TRACK_RADIUS - TRACK_WIDTH/2, TRACK_RADIUS + TRACK_WIDTH/2, 128);
+            roadMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.7 });
+            const road = new THREE.Mesh(roadGeo, roadMat);
+            road.rotation.x = -Math.PI / 2;
+            road.position.y = 0.01;
+            road.receiveShadow = true;
+            scene.add(road);
+
+            // 霓虹中線
+            const lineGeo = new THREE.RingGeometry(TRACK_RADIUS - 0.08, TRACK_RADIUS + 0.08, 128);
+            const lineMat = new THREE.MeshBasicMaterial({ color: 0x22d3ee });
+            const line = new THREE.Mesh(lineGeo, lineMat);
+            line.rotation.x = -Math.PI / 2;
+            line.position.y = 0.02;
+            scene.add(line);
+
+            // 起終點線
+            const checkers = new THREE.Group();
+            const cols = 8;
+            const size = TRACK_WIDTH / cols;
+            for (let i = 0; i < cols; i++) {
+                const blockGeo = new THREE.PlaneGeometry(1.5, size);
+                const blockMat = new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xffffff : 0x000000 });
+                const block = new THREE.Mesh(blockGeo, blockMat);
+                block.position.set(TRACK_RADIUS - TRACK_WIDTH/2 + (i * size) + size/2, 0.03, 0);
+                block.rotation.x = -Math.PI / 2;
+                block.rotation.z = Math.PI / 2;
+                checkers.add(block);
+            }
+            scene.add(checkers);
+
+            // 冰川「漂移結冰區域」 
+            const iceGeo = new THREE.RingGeometry(TRACK_RADIUS - TRACK_WIDTH/2, TRACK_RADIUS + TRACK_WIDTH/2, 32, 1, -0.4, 0.8);
+            const iceMat = new THREE.MeshStandardMaterial({
+                color: 0x60a5fa,
+                roughness: 0.01,
+                metalness: 0.9,
+                transparent: true,
+                opacity: 0.75
+            });
+            icyRoadSegmentMesh = new THREE.Mesh(iceGeo, iceMat);
+            icyRoadSegmentMesh.rotation.x = -Math.PI / 2;
+            icyRoadSegmentMesh.position.y = 0.025; 
+            icyRoadSegmentMesh.visible = false; 
+            scene.add(icyRoadSegmentMesh);
+        }
+
+        function buildTrafficLight() {
+            trafficLightMesh = new THREE.Group();
+
+            const poleGeo = new THREE.CylinderGeometry(0.3, 0.3, 2.8, 12);
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8 });
+            const pole = new THREE.Mesh(poleGeo, poleMat);
+            pole.position.y = 1.4;
+            trafficLightMesh.add(pole);
+
+            // 號誌箱主體
+            const boxGeo = new THREE.BoxGeometry(3.6, 1.6, 1.6);
+            const boxMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4 });
+            const box = new THREE.Mesh(boxGeo, boxMat);
+            box.position.set(0, 3.8, 0);
+            trafficLightMesh.add(box);
+
+            // 紅燈泡
+            const bulbGeo = new THREE.SphereGeometry(0.55, 16, 16);
+            redLightBulb = new THREE.Mesh(bulbGeo, new THREE.MeshBasicMaterial({ color: 0x3f0000 }));
+            redLightBulb.position.set(-0.8, 3.8, 0.81);
+            trafficLightMesh.add(redLightBulb);
+
+            // 綠燈泡
+            greenLightBulb = new THREE.Mesh(bulbGeo, new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
+            greenLightBulb.position.set(0.8, 3.8, 0.81);
+            trafficLightMesh.add(greenLightBulb);
+
+            trafficLightMesh.position.set(-60, 0, 0);
+            scene.add(trafficLightMesh);
+        }
+
+        function buildFences() {
+            const fenceHeight = 0.5;
+            const segmentsCount = 120;
+            const radiusValues = [
+                TRACK_RADIUS - TRACK_WIDTH/2 - 0.1,
+                TRACK_RADIUS + TRACK_WIDTH/2 + 0.1  
+            ];
+
+            radiusValues.forEach((rValue, index) => {
+                for (let i = 0; i < segmentsCount; i++) {
+                    const angle1 = (i / segmentsCount) * Math.PI * 2;
+                    const angle2 = ((i + 1) / segmentsCount) * Math.PI * 2;
+
+                    const px1 = Math.cos(angle1) * rValue;
+                    const pz1 = Math.sin(angle1) * rValue;
+                    const px2 = Math.cos(angle2) * rValue;
+                    const pz2 = Math.sin(angle2) * rValue;
+
+                    const dist = Math.sqrt((px2 - px1)**2 + (pz2 - pz1)**2);
+
+                    const beamGeo = new THREE.BoxGeometry(dist + 0.05, fenceHeight, 0.08);
+                    const beamMat = new THREE.MeshStandardMaterial({
+                        color: index === 0 ? 0x06b6d4 : 0xf43f5e,
+                        roughness: 0.1,
+                        emissive: index === 0 ? 0x0891b2 : 0xe11d48,
+                        emissiveIntensity: 0.3
+                    });
+                    const beam = new THREE.Mesh(beamGeo, beamMat);
+                    beam.position.set((px1 + px2) / 2, fenceHeight / 2, (pz1 + pz2) / 2);
+                    beam.lookAt(new THREE.Vector3(px2, fenceHeight / 2, pz2));
+                    beam.rotateY(Math.PI / 2);
+                    scene.add(beam);
+                }
+            });
+        }
+
+        function buildNeonGuides() {
+            const numArrows = 18;
+            const arrowColor = 0xeab308; 
+            const headGeo = new THREE.ConeGeometry(0.35, 0.6, 4);
+            headGeo.rotateX(Math.PI / 2);
+            headGeo.rotateY(Math.PI / 4);
+            const headMat = new THREE.MeshBasicMaterial({ color: arrowColor, transparent: true, opacity: 0.7 });
+
+            for (let i = 0; i < numArrows; i++) {
+                const angle = (i / numArrows) * Math.PI * 2;
+                const ax = Math.cos(angle) * TRACK_RADIUS;
+                const az = Math.sin(angle) * TRACK_RADIUS;
+
+                const arrow = new THREE.Mesh(headGeo, headMat);
+                arrow.position.set(ax, 0.04, az);
+
+                const nextAngle = angle + 0.1;
+                const nax = Math.cos(nextAngle) * TRACK_RADIUS;
+                const naz = Math.sin(nextAngle) * TRACK_RADIUS;
+                arrow.lookAt(new THREE.Vector3(nax, 0.04, naz));
+
+                scene.add(arrow);
+            }
+        }
+
+        function spawnStageEnvironments() {
+            cityEnvGroup = new THREE.Group();
+            desertEnvGroup = new THREE.Group();
+            glacierEnvGroup = new THREE.Group();
+
+            scene.add(cityEnvGroup);
+            scene.add(desertEnvGroup);
+            scene.add(glacierEnvGroup);
+
+            const numItems = 45;
+
+            // 1. 城市大樓
+            const createCitySkyscraper = () => {
+                const building = new THREE.Group();
+                const h = 14 + Math.random() * 16;
+                const w = 4 + Math.random() * 4;
+                const d = 4 + Math.random() * 4;
+
+                const bodyGeo = new THREE.BoxGeometry(w, h, d);
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4, metalness: 0.6 });
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                body.position.y = h / 2;
+                body.castShadow = true;
+                body.receiveShadow = true;
+                building.add(body);
+
+                const numStripes = 5 + Math.floor(Math.random() * 6);
+                const windowMat = new THREE.MeshBasicMaterial({
+                    color: Math.random() < 0.5 ? 0x06b6d4 : 0xf43f5e
+                });
+                for (let i = 0; i < numStripes; i++) {
+                    const stripeGeo = new THREE.BoxGeometry(w + 0.06, 0.15, d + 0.06);
+                    const stripe = new THREE.Mesh(stripeGeo, windowMat);
+                    stripe.position.y = (h / numStripes) * i + 1.5;
+                    building.add(stripe);
+                }
+                return building;
+            };
+
+            // 2. 沙漠仙人掌
+            const createHugeCactus = () => {
+                const cactus = new THREE.Group();
+                const skinMat = new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.95 });
+                const height = 4.5 + Math.random() * 4.5;
+
+                const mainGeo = new THREE.CylinderGeometry(0.35, 0.4, height, 8);
+                const main = new THREE.Mesh(mainGeo, skinMat);
+                main.position.y = height / 2;
+                main.castShadow = true;
+                cactus.add(main);
+
+                const armL = new THREE.Group();
+                const branchGeo = new THREE.CylinderGeometry(0.2, 0.2, height * 0.35, 8);
+                const branch = new THREE.Mesh(branchGeo, skinMat);
+                branch.rotation.z = Math.PI / 2;
+                branch.position.x = -height * 0.15;
+                armL.add(branch);
+
+                const upGeo = new THREE.CylinderGeometry(0.2, 0.2, height * 0.3, 8);
+                const upBranch = new THREE.Mesh(upGeo, skinMat);
+                upBranch.position.set(-height * 0.3, height * 0.15, 0);
+                armL.add(upBranch);
+                armL.position.y = height * 0.45;
+                cactus.add(armL);
+
+                const armR = armL.clone();
+                armR.rotation.y = Math.PI;
+                armR.position.y = height * 0.6;
+                cactus.add(armR);
+
+                return cactus;
+            };
+
+            // 3. 冰川冰山
+            const createGlacierCrystal = () => {
+                const glacier = new THREE.Group();
+                const numBlocks = 3 + Math.floor(Math.random() * 3);
+                const iceMat = new THREE.MeshStandardMaterial({
+                    color: 0xbae6fd,
+                    roughness: 0.05,
+                    metalness: 0.8,
+                    transparent: true,
+                    opacity: 0.75,
+                    emissive: 0x0284c7,
+                    emissiveIntensity: 0.15
+                });
+
+                for (let i = 0; i < numBlocks; i++) {
+                    const size = 3 + Math.random() * 4.5;
+                    const blockGeo = new THREE.BoxGeometry(size, size * 1.6, size);
+                    const block = new THREE.Mesh(blockGeo, iceMat);
+                    block.position.set(
+                        (Math.random() - 0.5) * 2,
+                        (size * 1.6) / 2,
+                        (Math.random() - 0.5) * 2
+                    );
+                    block.rotation.set(
+                        (Math.random() - 0.5) * 0.4,
+                        Math.random() * Math.PI,
+                        (Math.random() - 0.5) * 0.4
+                    );
+                    block.castShadow = true;
+                    glacier.add(block);
+                }
+                return glacier;
+            };
+
+            for (let i = 0; i < numItems; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.random() < 0.4
+                    ? Math.random() * (TRACK_RADIUS - TRACK_WIDTH / 2 - 4.5) 
+                    : (TRACK_RADIUS + TRACK_WIDTH / 2 + 4.5) + Math.random() * 30; 
+
+                const px = Math.cos(angle) * dist;
+                const pz = Math.sin(angle) * dist;
+
+                // 城市
+                const building = createCitySkyscraper();
+                building.position.set(px, 0, pz);
+                cityEnvGroup.add(building);
+
+                // 沙漠
+                const cactus = createHugeCactus();
+                cactus.position.set(px, 0, pz);
+                desertEnvGroup.add(cactus);
+
+                // 冰川
+                const crystal = createGlacierCrystal();
+                crystal.position.set(px, 0, pz);
+                glacierEnvGroup.add(crystal);
+            }
+        }
+
+        // ----------------- 實體道具與路障模型生成 -----------------
+        let coinTexture = null;
+        function getCoinTexture() {
+            if (!coinTexture) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 128;
+                canvas.height = 128;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                ctx.arc(64, 64, 60, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = '#ca8a04';
+                ctx.lineWidth = 10;
+                ctx.stroke();
+                
+                ctx.fillStyle = '#854d0e';
+                ctx.font = 'bold 84px Orbitron, sans-serif';
+                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'center';
+                ctx.fillText('$', 64, 64);
+                
+                coinTexture = new THREE.CanvasTexture(canvas);
+            }
+            return coinTexture;
+        }
+
+        function createMagnetMesh() {
+            const group = new THREE.Group();
+            const silver = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.9, roughness: 0.1 });
+            const red = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.5, roughness: 0.2 });
+            const blue = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.5, roughness: 0.2 });
+
+            const left = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 0.25), red);
+            left.position.set(-0.35, 0.2, 0);
+            group.add(left);
+
+            const right = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 0.25), blue);
+            right.position.set(0.35, 0.2, 0);
+            group.add(right);
+
+            const bottom = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.25, 0.25), silver);
+            bottom.position.set(0, -0.25, 0);
+            group.add(bottom);
+
+            return group;
+        }
+
+        function createRocketMesh() {
+            const group = new THREE.Group();
+            const white = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2 });
+            const red = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.1 });
+
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.8, 12), white);
+            body.position.y = 0.4;
+            group.add(body);
+
+            const nose = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.4, 12), red);
+            nose.position.y = 1.0;
+            group.add(nose);
+
+            const finGeo = new THREE.BoxGeometry(0.5, 0.18, 0.05);
+            const finL = new THREE.Mesh(finGeo, red);
+            finL.position.set(-0.25, 0.15, 0);
+            group.add(finL);
+
+            const finR = finL.clone();
+            finR.position.x = 0.25;
+            group.add(finR);
+
+            group.scale.set(1.1, 1.1, 1.1);
+            return group;
+        }
+
+        function createTrafficConeMesh() {
+            const coneGroup = new THREE.Group();
+            
+            const baseGeo = new THREE.BoxGeometry(0.7, 0.05, 0.7);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            coneGroup.add(base);
+
+            const bodyGeo = new THREE.ConeGeometry(0.3, 0.8, 12);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.3 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.4;
+            coneGroup.add(body);
+
+            const stripeGeo = new THREE.CylinderGeometry(0.18, 0.22, 0.2, 12);
+            const stripeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+            const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+            stripe.position.y = 0.4;
+            coneGroup.add(stripe);
+
+            return coneGroup;
+        }
+
+        function createCactusMesh() {
+            const cactus = new THREE.Group();
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.9 });
+
+            const mainGeo = new THREE.CylinderGeometry(0.2, 0.22, 1.2, 8);
+            const main = new THREE.Mesh(mainGeo, skinMat);
+            main.position.y = 0.6;
+            cactus.add(main);
+
+            const armGeoL = new THREE.CylinderGeometry(0.1, 0.1, 0.5, 8);
+            const armL = new THREE.Mesh(armGeoL, skinMat);
+            armL.rotation.z = Math.PI / 2;
+            armL.position.set(-0.25, 0.7, 0);
+            cactus.add(armL);
+
+            const subGeoL = new THREE.CylinderGeometry(0.1, 0.1, 0.4, 8);
+            const subL = new THREE.Mesh(subGeoL, skinMat);
+            subL.position.set(-0.45, 0.85, 0);
+            cactus.add(subL);
+
+            const armR = armL.clone();
+            armR.position.x = 0.25;
+            cactus.add(armR);
+
+            const subR = subL.clone();
+            subR.position.x = 0.45;
+            cactus.add(subR);
+
+            return cactus;
+        }
+
+        function createSnowmanMesh() {
+            const snowmanGroup = new THREE.Group();
+
+            const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+            const orangeMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.5 });
+            const darkMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+
+            const bottomGeo = new THREE.SphereGeometry(0.7, 16, 16);
+            const bottom = new THREE.Mesh(bottomGeo, whiteMat);
+            bottom.position.y = 0.7;
+            bottom.castShadow = true;
+            snowmanGroup.add(bottom);
+
+            const topGeo = new THREE.SphereGeometry(0.45, 16, 16);
+            const top = new THREE.Mesh(topGeo, whiteMat);
+            top.position.y = 1.6;
+            top.castShadow = true;
+            snowmanGroup.add(top);
+
+            const noseGeo = new THREE.ConeGeometry(0.08, 0.3, 8);
+            noseGeo.rotateX(Math.PI / 2);
+            const nose = new THREE.Mesh(noseGeo, orangeMat);
+            nose.position.set(0, 1.6, 0.45);
+            snowmanGroup.add(nose);
+
+            const eyeGeo = new THREE.SphereGeometry(0.05, 8, 8);
+            const eyeL = new THREE.Mesh(eyeGeo, darkMat);
+            eyeL.position.set(-0.15, 1.7, 0.38);
+            const eyeR = eyeL.clone();
+            eyeR.position.x = 0.15;
+            snowmanGroup.add(eyeL);
+            snowmanGroup.add(eyeR);
+
+            const hatGroup = new THREE.Group();
+            const hatRimGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.05, 12);
+            const hatRim = new THREE.Mesh(hatRimGeo, darkMat);
+            hatRim.position.y = 1.95;
+            hatGroup.add(hatRim);
+
+            const hatTopGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.4, 12);
+            const hatTop = new THREE.Mesh(hatTopGeo, darkMat);
+            hatTop.position.y = 2.15;
+            hatGroup.add(hatTop);
+            snowmanGroup.add(hatGroup);
+
+            snowmanGroup.scale.set(1.1, 1.1, 1.1);
+            snowmanGroup.castShadow = true;
+            return snowmanGroup;
+        }
+
+        function createIceBrickMesh() {
+            const brickGeo = new THREE.BoxGeometry(2.2, 1.6, 2.2);
+            const brickMat = new THREE.MeshStandardMaterial({
+                color: 0x2563eb, 
+                roughness: 0.1,
+                metalness: 0.9,
+                transparent: true,
+                opacity: 0.85,
+                emissive: 0x1d4ed8,
+                emissiveIntensity: 0.3
+            });
+            const brick = new THREE.Mesh(brickGeo, brickMat);
+            brick.castShadow = true;
+            return brick;
+        }
+
+        // ----------------- 動態關卡物件布署 -----------------
+        function spawnCollectiblesAndObstacles() {
+            coinsArray.forEach(c => scene.remove(c));
+            obstaclesArray.forEach(o => scene.remove(o));
+            powerupsArray.forEach(p => scene.remove(p));
+            iceBricksArray.forEach(i => scene.remove(i));
+
+            coinsArray.length = 0;
+            obstaclesArray.length = 0;
+            powerupsArray.length = 0;
+            iceBricksArray.length = 0;
+
+            const totalSegments = 16;
+            const coinGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.1, 12);
+            
+            const coinTex = getCoinTexture();
+            const coinSideMat = new THREE.MeshStandardMaterial({ color: 0xca8a04, metalness: 0.9, roughness: 0.1 });
+            const coinFaceMat = new THREE.MeshStandardMaterial({ map: coinTex, metalness: 0.9, roughness: 0.1 });
+            const coinMaterials = [coinSideMat, coinFaceMat, coinFaceMat];
+
+            for (let i = 0; i < totalSegments; i++) {
+                const angle = (i / totalSegments) * Math.PI * 2 + Math.random() * 0.05;
+                const lanes = [TRACK_RADIUS - 3, TRACK_RADIUS, TRACK_RADIUS + 3];
+                const inStartZone = Math.abs(angle % (Math.PI*2)) < 0.4 || Math.abs((angle % (Math.PI*2)) - Math.PI*2) < 0.4;
+
+                // 1. 生成硬幣
+                lanes.forEach(laneR => {
+                    if (Math.random() < 0.75) {
+                        const val = Math.random() < 0.6 ? 20 : (Math.random() < 0.8 ? 50 : 100);
+                        let scale = val === 20 ? 0.8 : (val === 50 ? 1.0 : 1.3);
+
+                        const coin = new THREE.Mesh(coinGeo, coinMaterials);
+                        coin.rotation.x = Math.PI / 2;
+                        coin.position.set(Math.cos(angle) * laneR, 0.5, Math.sin(angle) * laneR);
+                        coin.scale.set(scale, scale, scale);
+                        coin.baseY = 0.5;
+                        coin.phase = Math.random() * 10;
+                        coin.collected = false;
+                        coin.coinValue = val;
+                        scene.add(coin);
+                        coinsArray.push(coin);
+                    }
+                });
+
+                // 2. 生成對應路障物 (必須可視且完全擋住)
+                if (!inStartZone && Math.random() < 0.5) {
+                    const laneIndex = Math.floor(Math.random() * lanes.length);
+                    const laneR = lanes[laneIndex];
+
+                    // 第一關：三角錐 (CONE)
+                    const cone = createTrafficConeMesh();
+                    cone.position.set(Math.cos(angle + 0.1) * laneR, 0.05, Math.sin(angle + 0.1) * laneR);
+                    cone.obsType = "CONE";
+                    scene.add(cone);
+                    obstaclesArray.push(cone);
+
+                    // 第二關：仙人掌 (CACTUS)
+                    const cactus = createCactusMesh();
+                    cactus.position.set(Math.cos(angle + 0.1) * laneR, 0, Math.sin(angle + 0.1) * laneR);
+                    cactus.obsType = "CACTUS";
+                    cactus.visible = false;
+                    scene.add(cactus);
+                    obstaclesArray.push(cactus);
+
+                    // 第三關：白色雪人 (SNOWMAN)
+                    const snowman = createSnowmanMesh();
+                    snowman.position.set(Math.cos(angle + 0.1) * laneR, 0, Math.sin(angle + 0.1) * laneR);
+                    snowman.obsType = "SNOWMAN";
+                    snowman.visible = false;
+                    scene.add(snowman);
+                    obstaclesArray.push(snowman);
+                }
+
+                // 3. 生成道具
+                if (!inStartZone && Math.random() < 0.3) {
+                    const laneIndex = Math.floor(Math.random() * lanes.length);
+                    const laneR = lanes[laneIndex];
+                    const pType = Math.random() < 0.5 ? "BOOST" : "MAGNET";
+
+                    let pMesh = (pType === "MAGNET") ? createMagnetMesh() : createRocketMesh();
+                    pMesh.position.set(Math.cos(angle - 0.1) * laneR, 0.6, Math.sin(angle - 0.1) * laneR);
+                    pMesh.typeStr = pType;
+                    pMesh.collected = false;
+                    pMesh.baseY = 0.6;
+                    scene.add(pMesh);
+                    powerupsArray.push(pMesh);
+                }
+            }
+        }
+
+        // ----------------- 7. 車輛物理、操控、實體阻擋 -----------------
+        const P_KEYS = {
+            p1_up: 'w', p1_down: 's', p1_left: 'a', p1_right: 'd',
+            p2_up: 'arrowup', p2_down: 'arrowdown', p2_left: 'arrowleft', p2_right: 'arrowright'
+        };
+
+        const physics = {
+            accel: 0.009,
+            boostAccel: 0.019,
+            decel: 0.006,
+            brake: 0.025,
+            steer: 0.040,
+            friction: 0.982,
+            maxSpeed: 0.90,
+            boostMaxSpeed: 1.50
+        };
+
+        window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+        
+        function animate() {
+            if (!gameActive) return;
+            requestAnimationFrame(animate);
+
+            const dt = Math.min(clock.getDelta(), 0.1);
+
+            updateGlobalTrafficLight(dt);
+            updatePowerupTimers(dt);
+            updateSpecialZoneTimers(dt);
+
+            handleTrafficLightCollision(dt);
+
+            updateCarPhysics(car1, 1, dt);
+            updateCarPhysics(car2, 2, dt);
+
+            checkCarToCarCollision();
+            syncLocalCarToFirebase();
+            animateDynamicCollectibles(dt);
+            checkCollectiblesCollisions(dt);
+            
+            // 冰川天降冰磚與碰撞打滑
+            handleGlacierIceBrickFall(dt);
+
+            checkLapProgress(car1, 1);
+            checkLapProgress(car2, 2);
+
+            updateHudUI();
+            renderSplitScreen();
+        }
+
+        function handleTrafficLightCollision(dt) {
+            const lightCenter = new THREE.Vector3(-60, 0, 0);
+
+            // 玩家一
+            if (p1Lap === 1) {
+                const p1Dist = car1.position.distanceTo(lightCenter);
+                if (!p1Finished && p1Dist < 2.4) {
+                    if (!car1.lightHitCooldown || car1.lightHitCooldown <= 0) {
+                        p1RedLightFreezeTime = 2.0; 
+                        car1.speed = -0.25; 
+                        car1.lightHitCooldown = 3.0; 
+                        playCrashSound();
+                    }
+                }
+            }
+            if (car1.lightHitCooldown > 0) car1.lightHitCooldown -= dt;
+
+            // 玩家二
+            if (p2Lap === 1) {
+                const p2Dist = car2.position.distanceTo(lightCenter);
+                if (!p2Finished && p2Dist < 2.4) {
+                    if (!car2.lightHitCooldown || car2.lightHitCooldown <= 0) {
+                        p2RedLightFreezeTime = 2.0; 
+                        car2.speed = -0.25; 
+                        car2.lightHitCooldown = 3.0;
+                        playCrashSound();
+                    }
+                }
+            }
+            if (car2.lightHitCooldown > 0) car2.lightHitCooldown -= dt;
+        }
+
+        function updateGlobalTrafficLight(dt) {
+            trafficLightTimer += dt;
+            const cycle = 10.5; 
+            const subTime = trafficLightTimer % cycle;
+            
+            if (subTime < 6.0) {
+                const countdown = Math.ceil(6.0 - subTime);
+                if (trafficLightState !== 1) {
+                    trafficLightState = 1;
+                    greenLightBulb.material.color.setHex(0x00ff00);
+                    redLightBulb.material.color.setHex(0x3f0000);
+                }
+                document.getElementById('traffic-light-status').innerText = `● 綠燈 (通行) [${countdown}s]`;
+                document.getElementById('traffic-light-status').className = "text-green-400 font-bold";
+            } else {
+                const redCountdown = Math.ceil(10.5 - subTime);
+                if (trafficLightState !== 0) {
+                    trafficLightState = 0;
+                    greenLightBulb.material.color.setHex(0x003f00);
+                    redLightBulb.material.color.setHex(0xff0000);
+                    playAlertSound();
+                }
+                document.getElementById('traffic-light-status').innerText = `● 紅燈 (禁行) [${redCountdown}s]`;
+                document.getElementById('traffic-light-status').className = "text-rose-500 font-black animate-pulse";
+            }
+        }
+
+        function updatePowerupTimers(dt) {
+            if (p1PowerupTime > 0) {
+                p1PowerupTime = Math.max(0, p1PowerupTime - dt);
+                if (p1PowerupTime === 0) p1Powerup = "";
+            }
+            if (p2PowerupTime > 0) {
+                p2PowerupTime = Math.max(0, p2PowerupTime - dt);
+                if (p2PowerupTime === 0) p2Powerup = "";
+            }
+        }
+
+        function updateSpecialZoneTimers(dt) {
+            // P1
+            if (p1RedLightFreezeTime > 0) {
+                p1RedLightFreezeTime = Math.max(0, p1RedLightFreezeTime - dt);
+            }
+            if (p1SandstormTime > 0) {
+                p1SandstormTime = Math.max(0, p1SandstormTime - dt);
+                if (p1SandstormTime === 0) {
+                    p1SandstormActive = false;
+                    document.getElementById('p1-sandstorm-overlay').className = "hidden";
+                }
+            }
+            if (p1FrozenTime > 0) {
+                p1FrozenTime = Math.max(0, p1FrozenTime - dt);
+                if (p1FrozenTime === 0) {
+                    document.getElementById('p1-freeze-overlay').className = "hidden";
+                }
+            }
+
+            // P2
+            if (p2RedLightFreezeTime > 0) {
+                p2RedLightFreezeTime = Math.max(0, p2RedLightFreezeTime - dt);
+            }
+            if (p2SandstormTime > 0) {
+                p2SandstormTime = Math.max(0, p2SandstormTime - dt);
+                if (p2SandstormTime === 0) {
+                    p2SandstormActive = false;
+                    document.getElementById('p2-sandstorm-overlay').className = "hidden";
+                }
+            }
+            if (p2FrozenTime > 0) {
+                p2FrozenTime = Math.max(0, p2FrozenTime - dt);
+                if (p2FrozenTime === 0) {
+                    document.getElementById('p2-freeze-overlay').className = "hidden";
+                }
+            }
+        }
+
+        function updateCarPhysics(car, playerNum, dt) {
+            if (isOnlineMode) {
+                if ((isHost && playerNum === 2) || (!isHost && playerNum === 1)) {
+                    if (car.targetPosition) {
+                        car.position.x += (car.targetPosition.x - car.position.x) * 0.2;
+                        car.position.z += (car.targetPosition.z - car.position.z) * 0.2;
+                        let diff = car.targetRotation - car.rotation.y;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        car.rotation.y += diff * 0.2;
+                    }
+                    return;
+                }
+            }
+
+            const isP1 = playerNum === 1;
+            const currentLap = isP1 ? p1Lap : p2Lap;
+            const isFinished = isP1 ? p1Finished : p2Finished;
+
+            if (isFinished) {
+                car.speed = 0;
+                const targetX = playerNum === 1 ? 58.5 : 61.5;
+                const targetZ = 0;
+                car.position.x += (targetX - car.position.x) * 0.08;
+                car.position.z += (targetZ - car.position.z) * 0.08;
+
+                let diff = 0 - car.rotation.y;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                car.rotation.y += diff * 0.08;
+                return;
+            }
+
+            const distToLight = car.position.distanceTo(new THREE.Vector3(-60, car.position.y, 0));
+            const isRedLightStop = isP1 ? p1RedLightFreezeTime > 0 : p2RedLightFreezeTime > 0;
+            const isFrozen = isP1 ? p1FrozenTime > 0 : p2FrozenTime > 0;
+
+            // ⚠️ 紅綠燈或冰凍罰秒，車輛立定，無法操作
+            if (isRedLightStop || isFrozen) {
+                car.speed = 0;
+                return;
+            }
+
+            // 冰川雪地飄移打滑
+            const carAngle = Math.atan2(car.position.z, car.position.x);
+            const isOnIcyRoad = currentLap === 3 && (carAngle > -0.4 && carAngle < 0.4);
+
+            // 🎮 連線/單機動態控制按鍵選擇
+            let up, down, left, right;
+            if (isOnlineMode) {
+                // 連線對戰時：兩台車在各自玩家的螢幕上，皆能同時支援 WASD 鍵與 上下左右方向鍵控制本地車輛
+                up = keys[P_KEYS.p1_up] || keys[P_KEYS.p2_up];
+                down = keys[P_KEYS.p1_down] || keys[P_KEYS.p2_down];
+                left = keys[P_KEYS.p1_left] || keys[P_KEYS.p2_left];
+                right = keys[P_KEYS.p1_right] || keys[P_KEYS.p2_right];
+            } else {
+                // 本機同屏對決時：必須嚴格分離按鍵，避免兩位玩家在同個鍵盤輸入時產生干擾
+                up = keys[isP1 ? P_KEYS.p1_up : P_KEYS.p2_up];
+                down = keys[isP1 ? P_KEYS.p1_down : P_KEYS.p2_down];
+                left = keys[isP1 ? P_KEYS.p1_left : P_KEYS.p2_left];
+                right = keys[isP1 ? P_KEYS.p1_right : P_KEYS.p2_right];
+            }
+            
+            const activePower = isP1 ? p1Powerup : p2Powerup;
+
+            let driveForward = false;
+            let driveBackward = false;
+            let steerLeft = false;
+            let steerRight = false;
+
+            if (left) { steerLeft = true; driveForward = true; }
+            else if (right) { steerRight = true; driveForward = true; }
+            if (up) driveForward = true;
+            if (down) driveBackward = true;
+
+            let currentFriction = isOnIcyRoad ? 0.997 : physics.friction;
+            let currentSteer = isOnIcyRoad ? physics.steer * 1.6 : physics.steer;
+            let currentMax = activePower === "BOOST" ? physics.boostMaxSpeed : physics.maxSpeed;
+            let currentAccel = activePower === "BOOST" ? physics.boostAccel : physics.accel;
+
+            if (isOnIcyRoad && Math.abs(car.speed) > 0.25) {
+                playSlideSound();
+            }
+
+            if (driveForward) {
+                if (car.speed < currentMax) {
+                    car.speed += currentAccel;
+                } else {
+                    car.speed *= 0.985;
+                }
+            } else if (driveBackward) {
+                if (car.speed > -currentMax / 2) {
+                    car.speed -= physics.brake;
+                }
+            } else {
+                car.speed *= currentFriction;
+                if (Math.abs(car.speed) < 0.01) car.speed = 0;
+            }
+
+            if (steerLeft) {
+                car.rotation.y += currentSteer;
+                if (isOnIcyRoad) car.speed *= 0.990; 
+            }
+            if (steerRight) {
+                car.rotation.y -= currentSteer;
+                if (isOnIcyRoad) car.speed *= 0.990;
+            }
+
+            car.translateZ(car.speed);
+
+            // 沙漠沙塵暴
+            if (currentLap === 2 && !isP1 && !p2SandstormActive && car.position.x > 0 && car.position.z > 20) {
+                if (Math.random() < 0.015) {
+                    p2SandstormActive = true;
+                    p2SandstormTime = 4.0;
+                    playAlertSound();
+                }
+            }
+            if (currentLap === 2 && isP1 && !p1SandstormActive && car.position.x > 0 && car.position.z > 20) {
+                if (Math.random() < 0.015) {
+                    p1SandstormActive = true;
+                    p1SandstormTime = 4.0;
+                    playAlertSound();
+                }
+            }
+
+            // 防護欄安全撞擊回彈
+            const distFromCenter = Math.sqrt(car.position.x**2 + car.position.z**2);
+            if (distFromCenter < BARRIER_INNER || distFromCenter > BARRIER_OUTER) {
+                const dirVector = new THREE.Vector3(car.position.x, 0, car.position.z).normalize();
+                
+                if (distFromCenter < BARRIER_INNER) {
+                    car.position.x = dirVector.x * BARRIER_INNER;
+                    car.position.z = dirVector.z * BARRIER_INNER;
+                } else {
+                    car.position.x = dirVector.x * BARRIER_OUTER;
+                    car.position.z = dirVector.z * BARRIER_OUTER;
+                }
+                
+                if (Math.abs(car.speed) > 0.15) {
+                    playSound(160, 0.1, "triangle", 0.05);
+                    car.speed = -car.speed * 0.35;
+                }
+            }
+
+            car.position.y = 0.2;
+        }
+
+        function checkCarToCarCollision() {
+            if (!car1 || !car2) return;
+            const dist = car1.position.distanceTo(car2.position);
+            const rSum = 2.1;
+            if (dist < rSum) {
+                const dir = new THREE.Vector3().subVectors(car1.position, car2.position);
+                dir.y = 0;
+                dir.normalize();
+
+                const overlap = rSum - dist;
+                if (!p1Finished && !p2Finished) {
+                    car1.position.addScaledVector(dir, overlap * 0.5);
+                    car2.position.addScaledVector(dir, -overlap * 0.5);
+                } else if (!p1Finished && p2Finished) {
+                    car1.position.addScaledVector(dir, overlap);
+                } else if (p1Finished && !p2Finished) {
+                    car2.position.addScaledVector(dir, -overlap);
+                }
+
+                const s1 = car1.speed;
+                const s2 = car2.speed;
+                if (!p1Finished) car1.speed = -s1 * 0.4 - 0.1;
+                if (!p2Finished) car2.speed = -s2 * 0.4 - 0.1;
+
+                playCrashSound();
+            }
+        }
+
+        function animateDynamicCollectibles(dt) {
+            const time = Date.now() * 0.003;
+            coinsArray.forEach(coin => {
+                if (!coin.collected) {
+                    coin.rotation.z += 0.05;
+                    coin.position.y = coin.baseY + Math.sin(time + coin.phase) * 0.08;
+
+                    // 🧲 磁力吸附
+                    if (p1Powerup === "MAGNET" && !p1Finished) {
+                        if (car1.position.distanceTo(coin.position) < 14) {
+                            coin.position.lerp(car1.position, 0.14);
+                        }
+                    }
+                    if (p2Powerup === "MAGNET" && !p2Finished) {
+                        if (car2.position.distanceTo(coin.position) < 14) {
+                            coin.position.lerp(car2.position, 0.14);
+                        }
+                    }
+                }
+            });
+
+            powerupsArray.forEach(p => {
+                if (!p.collected) {
+                    p.rotation.y += 0.03;
+                    p.rotation.x += 0.01;
+                    p.position.y = p.baseY + Math.sin(time) * 0.12;
+                }
+            });
+
+            // 冰磚重力下落
+            iceBricksArray.forEach(brick => {
+                if (brick.position.y > 0.6) {
+                    brick.position.y -= 14 * dt;
+                    brick.rotation.x += 1.8 * dt;
+                    brick.rotation.y += 1.2 * dt;
+                } else {
+                    brick.position.y = 0.6;
+                }
+            });
+        }
+
+        // 💥 實體物理碰撞阻擋防穿越（路障與雪地雪人絕對無法穿透，撞到會彈回）
+        function checkCollectiblesCollisions(dt) {
+            // 金幣
+            coinsArray.forEach(coin => {
+                if (coin.collected) return;
+                const rRadius = 1.6;
+
+                if (!p1Finished && car1.position.distanceTo(coin.position) < rRadius) {
+                    coin.collected = true;
+                    coin.visible = false;
+                    p1Coins += coin.coinValue;
+                    p1Score += 30;
+                    playCoinSound();
+                }
+                if (!p2Finished && car2.position.distanceTo(coin.position) < rRadius) {
+                    coin.collected = true;
+                    coin.visible = false;
+                    p2Coins += coin.coinValue;
+                    p2Score += 30;
+                    playCoinSound();
+                }
+            });
+
+            // 道具
+            powerupsArray.forEach(p => {
+                if (p.collected) return;
+                const rRadius = 1.6;
+
+                if (!p1Finished && car1.position.distanceTo(p.position) < rRadius) {
+                    p.collected = true;
+                    p.visible = false;
+                    p1Powerup = p.typeStr;
+                    p1PowerupTime = 8.0;
+                    p1Score += 50;
+                    playPowerupSound();
+                }
+                if (!p2Finished && car2.position.distanceTo(p.position) < rRadius) {
+                    p.collected = true;
+                    p.visible = false;
+                    p2Powerup = p.typeStr;
+                    p2PowerupTime = 8.0;
+                    p2Score += 50;
+                    playPowerupSound();
+                }
+            });
+
+            // 🚨 實體障礙物阻擋與向後彈開（三角錐、仙人掌、雪人絕對防越界實體檢查）
+            obstaclesArray.forEach(obs => {
+                if (!obs.visible) return;
+
+                const isP1ObsActive = (p1Lap === 1 && obs.obsType === "CONE") ||
+                                      (p1Lap === 2 && obs.obsType === "CACTUS") ||
+                                      (p1Lap === 3 && obs.obsType === "SNOWMAN");
+
+                const isP2ObsActive = (p2Lap === 1 && obs.obsType === "CONE") ||
+                                      (p2Lap === 2 && obs.obsType === "CACTUS") ||
+                                      (p2Lap === 3 && obs.obsType === "SNOWMAN");
+
+                const distToP1 = car1.position.distanceTo(obs.position);
+                const distToP2 = car2.position.distanceTo(obs.position);
+                const colRadius = 1.6; // 阻擋半徑
+
+                // 玩家一實體障礙物碰撞
+                if (isP1ObsActive && !p1Finished && distToP1 < colRadius) {
+                    // 推離障礙物（阻止穿透）
+                    const pushDir = new THREE.Vector3().subVectors(car1.position, obs.position);
+                    pushDir.y = 0;
+                    pushDir.normalize();
+                    const overlap = colRadius - distToP1;
+                    car1.position.addScaledVector(pushDir, overlap + 0.15); // 精準向外修正推回
+
+                    if (!obs.p1HitCooldown || obs.p1HitCooldown <= 0) {
+                        p1Crashes++;
+                        p1Score = Math.max(0, p1Score - 60);
+                        car1.speed = -Math.abs(car1.speed) * 0.45 - 0.25; // 強制向後反彈
+                        obs.p1HitCooldown = 1.2;
+                        playCrashSound();
+                    } else {
+                        car1.speed = 0;
+                    }
+                }
+
+                // 玩家二實體障礙物碰撞
+                if (isP2ObsActive && !p2Finished && distToP2 < colRadius) {
+                    // 推離障礙物
+                    const pushDir = new THREE.Vector3().subVectors(car2.position, obs.position);
+                    pushDir.y = 0;
+                    pushDir.normalize();
+                    const overlap = colRadius - distToP2;
+                    car2.position.addScaledVector(pushDir, overlap + 0.15);
+
+                    if (!obs.p2HitCooldown || obs.p2HitCooldown <= 0) {
+                        p2Crashes++;
+                        p2Score = Math.max(0, p2Score - 60);
+                        car2.speed = -Math.abs(car2.speed) * 0.45 - 0.25; // 向後反彈
+                        obs.p2HitCooldown = 1.2;
+                        playCrashSound();
+                    } else {
+                        car2.speed = 0;
+                    }
+                }
+            });
+        }
+
+        // ❄️ 冰川天降冰磚：只在有人進入第三圈後才觸發
+        let lastIceFallTime = 0;
+        function handleGlacierIceBrickFall(dt) {
+            if (p1Lap < 3 && p2Lap < 3) return;
+
+            const now = Date.now();
+            if (now - lastIceFallTime > 2500) {
+                lastIceFallTime = now;
+
+                const randomAngle = Math.random() * Math.PI * 2;
+                const laneR = TRACK_RADIUS + (Math.random() - 0.5) * 6;
+
+                const brick = createIceBrickMesh();
+                brick.position.set(Math.cos(randomAngle) * laneR, 18.0, Math.sin(randomAngle) * laneR);
+                scene.add(brick);
+                iceBricksArray.push(brick);
+
+                // 限制最多25個防記憶體過載
+                if (iceBricksArray.length > 25) {
+                    const oldest = iceBricksArray.shift();
+                    scene.remove(oldest);
+                }
+            }
+
+            // 🚨 冰磚碰撞：偵測「車頭撞到冰磚」即強制冰凍 3 秒
+            for (let i = 0; i < iceBricksArray.length; i++) {
+                const brick = iceBricksArray[i];
+
+                if (brick.position.y < 2.0) { // 降到水平面高度
+                    const brickColRadius = 2.0;
+
+                    // 1. 玩家一：計算車頭 frontPos 撞擊
+                    if (p1Lap === 3 && !p1Finished) {
+                        const forward1 = new THREE.Vector3(0, 0, 1).applyQuaternion(car1.quaternion);
+                        const car1Front = new THREE.Vector3().copy(car1.position).addScaledVector(forward1, 1.8); // 獲取前輪/車頭座標
+                        const distToFront = car1Front.distanceTo(brick.position);
+
+                        if (distToFront < brickColRadius) {
+                            if (p1FrozenTime <= 0) {
+                                p1FrozenTime = 3.0; // ❄️ 冰凍 penalty 時間精準鎖定 3 秒
+                                car1.speed = 0;
+                                document.getElementById('p1-freeze-overlay').className = "absolute inset-0 z-10 pointer-events-none freeze-screen";
+                                playFreezeSound();
+                            }
+                            // 強行阻擋：車體推離防穿越
+                            const pushDir = new THREE.Vector3().subVectors(car1.position, brick.position);
+                            pushDir.y = 0; pushDir.normalize();
+                            car1.position.addScaledVector(pushDir, 0.25);
+                        }
+                    }
+
+                    // 2. 玩家二：計算車頭 frontPos 撞擊
+                    if (p2Lap === 3 && !p2Finished) {
+                        const forward2 = new THREE.Vector3(0, 0, 1).applyQuaternion(car2.quaternion);
+                        const car2Front = new THREE.Vector3().copy(car2.position).addScaledVector(forward2, 1.8);
+                        const distToFront = car2Front.distanceTo(brick.position);
+
+                        if (distToFront < brickColRadius) {
+                            if (p2FrozenTime <= 0) {
+                                p2FrozenTime = 3.0; // ❄️ 冰凍 penalty 時間精準鎖定 3 秒
+                                car2.speed = 0;
+                                document.getElementById('p2-freeze-overlay').className = "absolute inset-0 z-10 pointer-events-none freeze-screen";
+                                playFreezeSound();
+                            }
+                            // 強行阻擋
+                            const pushDir = new THREE.Vector3().subVectors(car2.position, brick.position);
+                            pushDir.y = 0; pushDir.normalize();
+                            car2.position.addScaledVector(pushDir, 0.25);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 🏁 壓線完賽與圈數進度檢測
+        function checkLapProgress(car, playerNum) {
+            const isP1 = playerNum === 1;
+            const currentLap = isP1 ? p1Lap : p2Lap;
+            const isFinished = isP1 ? p1Finished : p2Finished;
+
+            if (isFinished) return;
+
+            const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(car.quaternion);
+            const frontWheelsPos = new THREE.Vector3().copy(car.position).addScaledVector(forward, 1.1);
+
+            const angle = Math.atan2(car.position.z, car.position.x);
+            let nextCP = isP1 ? p1NextCheckpoint : p2NextCheckpoint;
+
+            if (nextCP === 1 && Math.abs(angle - 1.57) < 0.9) {
+                if (isP1) p1NextCheckpoint = 2; else p2NextCheckpoint = 2;
+            } else if (nextCP === 2 && (Math.abs(angle - 3.14) < 0.9 || Math.abs(angle + 3.14) < 0.9)) {
+                if (isP1) p1NextCheckpoint = 3; else p2NextCheckpoint = 3;
+            } else if (nextCP === 3 && Math.abs(angle + 1.57) < 0.9) {
+                if (isP1) p1NextCheckpoint = 0; else p2NextCheckpoint = 0;
+            } else if (nextCP === 0 && frontWheelsPos.x > 0) {
+                const prevZ = isP1 ? car1.prevFrontZ : car2.prevFrontZ;
+                if (prevZ < 0 && frontWheelsPos.z >= 0) {
+                    if (isP1) p1Score += 40; else p2Score += 40;
+
+                    if (currentLap < LAP_TOTAL) {
+                        if (isP1) {
+                            p1Lap++;
+                            p1NextCheckpoint = 1;
+                            triggerSceneLapTransition(1, p1Lap);
+                        } else {
+                            p2Lap++;
+                            p2NextCheckpoint = 1;
+                            triggerSceneLapTransition(2, p2Lap);
+                        }
+                        playSound(659.25, 0.3, "sine", 0.08);
+                    } else {
+                        if (isP1) {
+                            p1Finished = true;
+                            p1FinishTime = elapsedGameTime;
+                        } else {
+                            p2Finished = true;
+                            p2FinishTime = elapsedGameTime;
+                        }
+                        playSound(1046.50, 0.5, "sine", 0.12);
+                        toggleFinishOverlays();
+
+                        if (!isOnlineMode && p1Finished && p2Finished) {
+                            endGame();
+                        } else if (isOnlineMode) {
+                            syncLocalCarToFirebase();
+                        }
+                    }
+                }
+            }
+
+            if (isP1) {
+                car1.prevFrontZ = frontWheelsPos.z;
+            } else {
+                car2.prevFrontZ = frontWheelsPos.z;
+            }
+        }
+
+        function triggerSceneLapTransition(playerNum, lap) {
+            const isP1 = playerNum === 1;
+            const themeEl = document.getElementById(isP1 ? 'p1-track-theme-name' : 'p2-track-theme-name');
+
+            if (lap === 1) {
+                themeEl.innerText = "霓虹城市 🚦";
+                themeEl.className = "text-cyan-300 font-bold";
+            } else if (lap === 2) {
+                themeEl.innerText = "狂沙極限 🌪️";
+                themeEl.className = "text-amber-500 font-bold";
+            } else {
+                themeEl.innerText = "極地冰川 ❄️";
+                themeEl.className = "text-blue-400 font-bold";
+            }
+        }
+
+        function toggleFinishOverlays() {
+            const overlayP1 = document.getElementById('p1-finish-overlay');
+            const overlayP2 = document.getElementById('p2-finish-overlay');
+            if (p1Finished) overlayP1.classList.remove('hidden'); else overlayP1.classList.add('hidden');
+            if (p2Finished) overlayP2.classList.remove('hidden'); else overlayP2.classList.add('hidden');
+        }
+
+        // 🏎️ 動態分割畫面渲染器 (極緻關卡視覺與冰磚徹底隔離機制)
+        function renderSplitScreen() {
+            // 1. 動態將場景設為玩家一專屬數據，並渲染左邊視口
+            prepareSceneForPlayer(1, p1Lap, p1SandstormActive);
+            camera1.position.set(0, 3.5, -7.5);
+            camera1.position.applyMatrix4(car1.matrixWorld);
+            camera1.lookAt(new THREE.Vector3(car1.position.x, car1.position.y + 0.8, car1.position.z));
+            renderer1.render(scene, camera1);
+
+            // 2. 動態將場景設為玩家二專屬數據，並渲染右邊視口
+            // 💡 若玩家二 (B) 還在第 1 或第 2 圈，在準備 B 的渲染資料時，所有天降冰磚將被設為隱藏，徹底避免穿幫！
+            prepareSceneForPlayer(2, p2Lap, p2SandstormActive);
+            camera2.position.set(0, 3.5, -7.5);
+            camera2.position.applyMatrix4(car2.matrixWorld);
+            camera2.lookAt(new THREE.Vector3(car2.position.x, car2.position.y + 0.8, car2.position.z));
+            renderer2.render(scene, camera2);
+        }
+
+        // 🌇 渲染前預先動態置換場景中的物件可見度，達成完美的畫質與機制隔離
+        function prepareSceneForPlayer(playerNum, lap, sandstormOn) {
+            cityEnvGroup.visible = (lap === 1);
+            desertEnvGroup.visible = (lap === 2);
+            glacierEnvGroup.visible = (lap === 3);
+
+            // 實體路障置換
+            obstaclesArray.forEach(obs => {
+                if (obs.obsType === "CONE") {
+                    obs.visible = (lap === 1);
+                } else if (obs.obsType === "CACTUS") {
+                    obs.visible = (lap === 2);
+                } else if (obs.obsType === "SNOWMAN") {
+                    obs.visible = (lap === 3);
+                }
+            });
+
+            // ❄️ 冰川天降冰磚隔離：唯有該視角玩家的當前 Lap 達到第 3 圈 (雪地) 才會渲染冰磚！
+            iceBricksArray.forEach(brick => {
+                brick.visible = (lap === 3);
+            });
+
+            // 結冰路面可視性
+            icyRoadSegmentMesh.visible = (lap === 3);
+
+            // 交通號誌可視性
+            trafficLightMesh.visible = (lap === 1);
+
+            if (lap === 1) {
+                groundMat.color.setHex(0x090d16); 
+                roadMat.color.setHex(0x18181b);   
+                scene.background.setHex(0x020617);
+                scene.fog.color.setHex(0x020617);
+                scene.fog.density = 0.015;
+                ambientLight.color.setHex(0xffffff);
+                ambientLight.intensity = 0.7;
+                headlight1.intensity = 0.5;
+                headlight2.intensity = 0.5;
+            } else if (lap === 2) {
+                groundMat.color.setHex(0x78350f); 
+                roadMat.color.setHex(0x451a03);   
+                
+                if (sandstormOn) {
+                    scene.background.setHex(0x92400e); 
+                    scene.fog.color.setHex(0x92400e);
+                    scene.fog.density = 0.16;          
+                    ambientLight.color.setHex(0xf59e0b);
+                    ambientLight.intensity = 0.45;
+                } else {
+                    scene.background.setHex(0xb45309);
+                    scene.fog.color.setHex(0xb45309);
+                    scene.fog.density = 0.025;
+                    ambientLight.color.setHex(0xfcd34d);
+                    ambientLight.intensity = 0.6;
+                }
+                headlight1.intensity = 1.5;
+                headlight2.intensity = 1.5;
+            } else {
+                groundMat.color.setHex(0x0c4a6e); 
+                roadMat.color.setHex(0xbae6fd);   
+                scene.background.setHex(0x083344); 
+                scene.fog.color.setHex(0x083344);
+                scene.fog.density = 0.02;
+                ambientLight.color.setHex(0xe0f2fe);
+                ambientLight.intensity = 0.85;
+                headlight1.intensity = 2.5;
+                headlight2.intensity = 2.5;
+            }
+        }
+
+        function triggerPop(elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            el.classList.remove('animate-hud-pop');
+            void el.offsetWidth;
+            el.classList.add('animate-hud-pop');
+        }
+
+        function updateHudUI() {
+            // P1
+            if (displayedP1Coins !== p1Coins) {
+                document.getElementById('hud-p1-coins').innerText = p1Coins;
+                triggerPop('hud-p1-coins');
+                displayedP1Coins = p1Coins;
+            }
+            if (displayedP1Score !== p1Score) {
+                document.getElementById('hud-p1-score').innerText = p1Score;
+                triggerPop('hud-p1-score');
+                displayedP1Score = p1Score;
+            }
+            document.getElementById('hud-p1-lap').innerText = p1Finished ? "已完賽! 🏁" : `${p1Lap} / ${LAP_TOTAL}`;
+            document.getElementById('hud-p1-speed').innerText = Math.round(Math.abs(car1.speed) * 190);
+
+            const p1Box = document.getElementById('hud-p1-powerup-box');
+            if (p1Powerup) {
+                p1Box.classList.remove('hidden');
+                document.getElementById('hud-p1-powerup').innerText = p1Powerup === "BOOST" ? "🚀 火箭加速" : "🧲 磁鐵吸附";
+                document.getElementById('hud-p1-powerup-time').innerText = Math.ceil(p1PowerupTime);
+            } else {
+                p1Box.classList.add('hidden');
+            }
+
+            const alert1 = document.getElementById('hud-p1-alert-box');
+            if (p1RedLightFreezeTime > 0) {
+                alert1.classList.remove('hidden');
+                alert1.innerText = `🔴 紅燈罰秒！罰停 ${Math.ceil(p1RedLightFreezeTime)}s`;
+            } else if (p1FrozenTime > 0) {
+                alert1.classList.remove('hidden');
+                alert1.innerText = `🥶 冰封！融化中 ${Math.ceil(p1FrozenTime)}s`;
+            } else if (p1SandstormActive) {
+                alert1.classList.remove('hidden');
+                alert1.innerText = `🌪️ 沙塵暴侵襲！能見度降 ${Math.ceil(p1SandstormTime)}s`;
+                document.getElementById('p1-sandstorm-overlay').className = "absolute inset-0 z-10 pointer-events-none sandstorm-screen";
+            } else {
+                alert1.classList.add('hidden');
+            }
+
+            // P2
+            if (displayedP2Coins !== p2Coins) {
+                document.getElementById('hud-p2-coins').innerText = p2Coins;
+                triggerPop('hud-p2-coins');
+                displayedP2Coins = p2Coins;
+            }
+            if (displayedP2Score !== p2Score) {
+                document.getElementById('hud-p2-score').innerText = p2Score;
+                triggerPop('hud-p2-score');
+                displayedP2Score = p2Score;
+            }
+            document.getElementById('hud-p2-lap').innerText = p2Finished ? "已完賽! 🏁" : `${p2Lap} / ${LAP_TOTAL}`;
+            document.getElementById('hud-p2-speed').innerText = Math.round(Math.abs(car2.speed) * 190);
+
+            const p2Box = document.getElementById('hud-p2-powerup-box');
+            if (p2Powerup) {
+                p2Box.classList.remove('hidden');
+                document.getElementById('hud-p2-powerup').innerText = p2Powerup === "BOOST" ? "🚀 火箭加速" : "🧲 磁鐵吸附";
+                document.getElementById('hud-p2-powerup-time').innerText = Math.ceil(p2PowerupTime);
+            } else {
+                p2Box.classList.add('hidden');
+            }
+
+            const alert2 = document.getElementById('hud-p2-alert-box');
+            if (p2RedLightFreezeTime > 0) {
+                alert2.classList.remove('hidden');
+                alert2.innerText = `🔴 紅燈罰秒！罰停 ${Math.ceil(p2RedLightFreezeTime)}s`;
+            } else if (p2FrozenTime > 0) {
+                alert2.classList.remove('hidden');
+                alert2.innerText = `🥶 冰封！融化中 ${Math.ceil(p2FrozenTime)}s`;
+            } else if (p2SandstormActive) {
+                alert2.classList.remove('hidden');
+                alert2.innerText = `🌪️ 沙塵暴侵襲！能見度降 ${Math.ceil(p2SandstormTime)}s`;
+                document.getElementById('p2-sandstorm-overlay').className = "absolute inset-0 z-10 pointer-events-none sandstorm-screen";
+            } else {
+                alert2.classList.add('hidden');
+            }
+        }
+
+        function onWindowResize() {
+            if (!gameActive) return;
+            const p1W = document.getElementById('p1-container').clientWidth;
+            const p1H = document.getElementById('p1-container').clientHeight;
+            camera1.aspect = p1W / p1H;
+            camera1.updateProjectionMatrix();
+            renderer1.setSize(p1W, p1H);
+
+            const p2W = document.getElementById('p2-container').clientWidth;
+            const p2H = document.getElementById('p2-container').clientHeight;
+            camera2.aspect = p2W / p2H;
+            camera2.updateProjectionMatrix();
+            renderer2.setSize(p2W, p2H);
+        }
+
+        // ----------------- 8. 彩帶特效與成績結算 -----------------
+        async function endGame() {
+            gameActive = false;
+            if (timerInterval) clearInterval(timerInterval);
+            if (roomUnsubscribe) roomUnsubscribe();
+
+            document.getElementById('p1-finish-overlay').classList.add('hidden');
+            document.getElementById('p2-finish-overlay').classList.add('hidden');
+
+            const p1Bonus = Math.max(0, (240 - p1FinishTime) * 6);
+            const p2Bonus = Math.max(0, (240 - p2FinishTime) * 6);
+
+            const p1Final = p1Score + p1Bonus;
+            const p2Final = p2Score + p2Bonus;
+
+            document.getElementById('res-p1-coins').innerText = p1Coins;
+            document.getElementById('res-p1-crashes').innerText = p1Crashes;
+            document.getElementById('res-p1-time').innerText = formatTime(p1FinishTime);
+            document.getElementById('res-p1-time-bonus').innerText = `+${p1Bonus}`;
+            document.getElementById('res-p1-total').innerText = p1Final;
+
+            document.getElementById('res-p2-coins').innerText = p2Coins;
+            document.getElementById('res-p2-crashes').innerText = p2Crashes;
+            document.getElementById('res-p2-time').innerText = formatTime(p2FinishTime);
+            document.getElementById('res-p2-time-bonus').innerText = `+${p2Bonus}`;
+            document.getElementById('res-p2-total').innerText = p2Final;
+
+            const badgeP1 = document.getElementById('p1-winner-badge');
+            const badgeP2 = document.getElementById('p2-winner-badge');
+            const boxP1 = document.getElementById('result-box-p1');
+            const boxP2 = document.getElementById('result-box-p2');
+            const rewP1 = document.getElementById('p1-coin-reward-display');
+            const rewP2 = document.getElementById('p2-coin-reward-display');
+
+            badgeP1.classList.add('hidden');
+            badgeP2.classList.add('hidden');
+            boxP1.className = "bg-slate-950/80 p-5 rounded-2xl border-2 border-cyan-500/40 relative overflow-hidden text-center";
+            boxP2.className = "bg-slate-950/80 p-5 rounded-2xl border-2 border-rose-500/40 relative overflow-hidden text-center";
+
+            let p1IsWinner = false;
+            let p2IsWinner = false;
+            let drawGame = false;
+
+            if (p1Final > p2Final) {
+                p1IsWinner = true;
+                winnerIndex = 1;
+                badgeP1.classList.remove('hidden');
+                boxP1.className = "bg-slate-950/80 p-5 rounded-2xl border-2 border-yellow-500 relative neon-shadow-blue text-center";
+            } else if (p2Final > p1Final) {
+                p2IsWinner = true;
+                winnerIndex = 2;
+                badgeP2.classList.remove('hidden');
+                boxP2.className = "bg-slate-950/80 p-5 rounded-2xl border-2 border-yellow-500 relative neon-shadow-red text-center";
+            } else {
+                drawGame = true;
+                winnerIndex = 0;
+            }
+
+            if (isOnlineMode) {
+                if (isHost) {
+                    if (p1IsWinner) {
+                        userCoins += 200;
+                        rewP1.innerHTML = `<span class="text-green-400 font-black">🎉 奪冠：+100 金幣</span>`;
+                        rewP2.innerHTML = `<span class="text-rose-500 font-bold">💀 敗北：-100 金幣</span>`;
+                    } else if (drawGame) {
+                        userCoins += 100;
+                        rewP1.innerHTML = `<span class="text-yellow-400 font-black">🤝 平局：退還金幣</span>`;
+                        rewP2.innerHTML = `<span class="text-yellow-400 font-black">🤝 平局：退還金幣</span>`;
+                    } else {
+                        rewP1.innerHTML = `<span class="text-rose-500 font-bold">💀 敗北：-100 金幣</span>`;
+                        rewP2.innerHTML = `<span class="text-green-400 font-black">🎉 奪冠：+100 金幣</span>`;
+                    }
+                } else {
+                    if (p2IsWinner) {
+                        userCoins += 200;
+                        rewP1.innerHTML = `<span class="text-rose-500 font-bold">💀 敗北：-100 金幣</span>`;
+                        rewP2.innerHTML = `<span class="text-green-400 font-black">🎉 奪冠：+100 金幣</span>`;
+                    } else if (drawGame) {
+                        userCoins += 100;
+                        rewP1.innerHTML = `<span class="text-yellow-400 font-black">🤝 平局：退還金幣</span>`;
+                        rewP2.innerHTML = `<span class="text-yellow-400 font-black">🤝 平局：退還金幣</span>`;
+                    } else {
+                        rewP1.innerHTML = `<span class="text-green-400 font-black">🎉 奪冠：+100 金幣</span>`;
+                        rewP2.innerHTML = `<span class="text-rose-500 font-bold">💀 敗北：-100 金幣</span>`;
+                    }
+                }
+            } else {
+                if (p1IsWinner) {
+                    userCoins += 200;
+                    rewP1.innerHTML = `<span class="text-green-400 font-black">🎉 贏家：+100 金幣</span>`;
+                    rewP2.innerHTML = `<span class="text-rose-500 font-bold">💀 輸家：-100 金幣</span>`;
+                } else if (p2IsWinner) {
+                    userCoins += 200;
+                    rewP1.innerHTML = `<span class="text-rose-500 font-bold">💀 輸家：-100 金幣</span>`;
+                    rewP2.innerHTML = `<span class="text-green-400 font-black">🎉 贏家：+100 金幣</span>`;
+                } else {
+                    userCoins += 200;
+                    rewP1.innerHTML = `<span class="text-yellow-400 font-black">🤝 平手：平分返還</span>`;
+                    rewP2.innerHTML = `<span class="text-yellow-400 font-black">🤝 平手：平分返還</span>`;
+                }
+            }
+
+            await saveUserProfile();
+            document.getElementById('results-modal').classList.remove('hidden');
+            startConfetti();
+        }
+
+        function startConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            confettiParticles = [];
+            const colors = ['#06b6d4', '#f43f5e', '#eab308', '#10b981', '#a855f7'];
+
+            for (let i = 0; i < 180; i++) {
+                confettiParticles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * -canvas.height,
+                    size: 6 + Math.random() * 8,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    speedY: 2 + Math.random() * 4,
+                    speedX: (Math.random() - 0.5) * 3,
+                    rot: Math.random() * 360,
+                    rotSpeed: -3 + Math.random() * 6
+                });
+            }
+
+            function update() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                confettiParticles.forEach(p => {
+                    p.y += p.speedY;
+                    p.x += p.speedX;
+                    p.rot += p.rotSpeed;
+
+                    if (p.y > canvas.height) {
+                        p.y = -20;
+                        p.x = Math.random() * canvas.width;
+                    }
+
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rot * Math.PI / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size / 2);
+                    ctx.restore();
+                });
+                confettiAnimationId = requestAnimationFrame(update);
+            }
+            update();
+        }
+
+        function stopConfetti() {
+            if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        document.getElementById('results-done-btn').addEventListener('click', async () => {
+            stopConfetti();
+            document.getElementById('results-modal').classList.add('hidden');
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+
+            if (isOnlineMode && isHost && db && roomId) {
+                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId);
+                await deleteDoc(roomRef).catch(console.error);
+            }
+
+            if (roomUnsubscribe) roomUnsubscribe();
+            roomId = "";
+            isOnlineMode = false;
+        });
+
+        function formatTime(totalSecs) {
+            if (totalSecs === 0) return "未完賽";
+            const mins = String(Math.floor(totalSecs / 60)).padStart(2, '0');
+            const secs = String(totalSecs % 60).padStart(2, '0');
+            return `${mins}:${secs}`;
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await authenticateAndLoad();
+            updateCoinsUI();
+        });
+    </script>
+</body>
+</html>
