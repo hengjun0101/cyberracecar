@@ -90,7 +90,7 @@
                 DUAL DRIFT 3D
             </h1>
             <p class="text-zinc-400 text-sm md:text-md font-bold tracking-widest mb-10 uppercase font-sans">
-                三大極限賽區：城市紅綠燈 🚦 ｜ 沙漠沙塵暴 🌪️ ｜ 冰川天降冰磚 ❄️
+                三大極限賽區：城市紅綠燈 🚦 ｜ 沙漠沙塵暴 🌪️ ｜ 極地天降冰磚 ❄️
             </p>
 
             <!-- 玩家金幣錢包資訊 -->
@@ -127,7 +127,7 @@
                 <button id="mode-online-btn" class="group relative bg-gradient-to-b from-rose-950/40 to-slate-900/90 border-2 border-rose-500/40 hover:border-rose-400 p-6 rounded-2xl flex flex-col items-center transition-all duration-300 hover:shadow-[0_0_35px_rgba(244,63,94,0.25)] active:scale-98">
                     <span class="absolute top-3 right-3 bg-rose-500 text-white text-xs font-black px-2 py-0.5 rounded-md">MULTIPLAYER</span>
                     <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">🌐</div>
-                    <h3 class="text-xl font-bold text-rose-300 mb-1">遠端雲端聯賽</h3>
+                    <h3 class="text-xl font-bold text-rose-300 mb-1">遠端連線對決</h3>
                     <p class="text-xs text-rose-200/60 mb-4">跨越終端即時同步開賽</p>
                     <div class="text-xs bg-slate-950/90 text-zinc-300 p-4 rounded-lg border border-slate-800 w-full flex flex-col justify-center gap-1.5">
                         <p class="text-rose-400 font-bold">📡 連線指引：</p>
@@ -2547,28 +2547,28 @@
                 if (isHost) {
                     if (p1IsWinner) {
                         userCoins += 200;
-                        rewP1.innerHTML = `<span class="text-green-400 font-black">🎉 奪冠：+100 金幣</span>`;
-                        rewP2.innerHTML = `<span class="text-rose-500 font-bold">💀 敗北：-100 金幣</span>`;
+                        rewP1.innerHTML = `<span class="text-green-400 font-black">🎉 Winner：+100 金幣</span>`;
+                        rewP2.innerHTML = `<span class="text-rose-500 font-bold">💀 Loser：-100 金幣</span>`;
                     } else if (drawGame) {
                         userCoins += 100;
                         rewP1.innerHTML = `<span class="text-yellow-400 font-black">🤝 平局：退還金幣</span>`;
                         rewP2.innerHTML = `<span class="text-yellow-400 font-black">🤝 平局：退還金幣</span>`;
                     } else {
-                        rewP1.innerHTML = `<span class="text-rose-500 font-bold">💀 敗北：-100 金幣</span>`;
-                        rewP2.innerHTML = `<span class="text-green-400 font-black">🎉 奪冠：+100 金幣</span>`;
+                        rewP1.innerHTML = `<span class="text-rose-500 font-bold">💀 Loser：-100 金幣</span>`;
+                        rewP2.innerHTML = `<span class="text-green-400 font-black">🎉 Winner奪冠：+100 金幣</span>`;
                     }
                 } else {
                     if (p2IsWinner) {
                         userCoins += 200;
-                        rewP1.innerHTML = `<span class="text-rose-500 font-bold">💀 敗北：-100 金幣</span>`;
-                        rewP2.innerHTML = `<span class="text-green-400 font-black">🎉 奪冠：+100 金幣</span>`;
+                        rewP1.innerHTML = `<span class="text-rose-500 font-bold">💀 Loser：-100 金幣</span>`;
+                        rewP2.innerHTML = `<span class="text-green-400 font-black">🎉 Winner：+100 金幣</span>`;
                     } else if (drawGame) {
                         userCoins += 100;
                         rewP1.innerHTML = `<span class="text-yellow-400 font-black">🤝 平局：退還金幣</span>`;
                         rewP2.innerHTML = `<span class="text-yellow-400 font-black">🤝 平局：退還金幣</span>`;
                     } else {
-                        rewP1.innerHTML = `<span class="text-green-400 font-black">🎉 奪冠：+100 金幣</span>`;
-                        rewP2.innerHTML = `<span class="text-rose-500 font-bold">💀 敗北：-100 金幣</span>`;
+                        rewP1.innerHTML = `<span class="text-green-400 font-black">🎉 Winner：+100 金幣</span>`;
+                        rewP2.innerHTML = `<span class="text-rose-500 font-bold">💀 Loser：-100 金幣</span>`;
                     }
                 }
             } else {
